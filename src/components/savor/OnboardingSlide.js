@@ -1,16 +1,17 @@
-import { View, Image, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SerifText, SansText } from './SerifText';
 import { SavorButton } from './SavorButton';
 import { DotIndicator } from './DotIndicator';
 import { SavorColors, SavorRadius } from '../../constants/savorTheme';
 
-export function OnboardingSlide({ imageUri, title, description, step, total, buttonLabel, onNext }) {
+export function OnboardingSlide({ iconName, title, description, step, total, buttonLabel, onNext }) {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.inner}>
         <View style={styles.imageBox}>
-          <Image source={{ uri: imageUri }} style={styles.image} resizeMode="contain" />
+          <Ionicons name={iconName} size={100} color={SavorColors.orange} />
         </View>
 
         <SerifText size={30} style={styles.title}>

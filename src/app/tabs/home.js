@@ -16,7 +16,7 @@ export default function Home() {
     <Screen scroll padBottom contentStyle={styles.pad}>
       <View style={styles.header}>
         <View>
-          <SansText size={13}>Good Evening 🌙</SansText>
+          <SansText size={13} color={SavorColors.text}>Good Evening 🌙</SansText>
           <SerifText size={24}>What's for dinner?</SerifText>
         </View>
         <View style={styles.avatar}>
@@ -67,7 +67,7 @@ export default function Home() {
         Popular now
       </SansText>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.popularScroll}>
         {POPULAR_DISHES.map((dish) => (
           <TouchableOpacity
             key={dish.id}
@@ -134,6 +134,7 @@ const styles = StyleSheet.create({
     borderRadius: SavorRadius.pill,
   },
   section: { marginBottom: 14 },
+  popularScroll: { paddingRight: 40 },
   foodCard: {
     width: 160,
     backgroundColor: SavorColors.card,

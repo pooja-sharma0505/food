@@ -6,7 +6,7 @@ export default function Onboarding3() {
   return (
     <OnboardingSlide
       step={2}
-      imageUri="https://cdn-icons-png.flaticon.com/512/3159/3159066.png"
+      iconName="pricetag-outline"
       title={'Exclusive Deals\nEvery Day'}
       description="Unlock member-only discounts, cashback, and free delivery passes."
       buttonLabel="Get Started 🎉"
