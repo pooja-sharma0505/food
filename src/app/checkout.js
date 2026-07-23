@@ -7,12 +7,17 @@ import { PageHeader } from '../components/savor/PageHeader';
 import { SerifText, SansText } from '../components/savor/SerifText';
 import { SavorButton } from '../components/savor/SavorButton';
 import { SavorColors, SavorRadius, SavorShadow } from '../constants/savorTheme';
+import { CART_ITEMS, ADDRESSES } from '../data/mockData';
 
 const PAYMENTS = ['UPI / PhonePe', 'Cash on Delivery', 'Net Banking'];
 
 export default function Checkout() {
   const router = useRouter();
   const [payment, setPayment] = useState(PAYMENTS[0]);
+  const defaultAddress = ADDRESSES.find((a) => a.default) || ADDRESSES[0];
+  const subtotal = CART_ITEMS.reduce((sum, i) => sum + i.price * i.qty, 0);
+  const delivery = 0;
+  const total = subtotal + delivery;
 
   return (
     <Screen scroll padBottom={false} contentStyle={styles.pad}>
@@ -20,10 +25,10 @@ export default function Checkout() {
 
       <SansText size={14} weight="semi" color={SavorColors.text}>Delivery address</SansText>
       <View style={styles.addressCard}>
-        <Ionicons name="home" size={22} color={SavorColors.orange} />
+        <Ionicons name={defaultAddress.icon} size={22} color={SavorColors.orange} />
         <View style={{ flex: 1 }}>
-          <SansText size={14} weight="medium" color={SavorColors.text}>Home</SansText>
-          <SansText size={13}>Subhash Nagar, Jaipur</SansText>
+          <SansText size={14} weight="medium" color={SavorColors.text}>{defaultAddress.label}</SansText>
+          <SansText size={13}>{defaultAddress.line1}, {defaultAddress.line2}</SansText>
         </View>
         <TouchableOpacity onPress={() => router.push('/addresses')}>
           <SansText size={13} color={SavorColors.orange} weight="semi">Change</SansText>
@@ -47,7 +52,7 @@ export default function Checkout() {
       <View style={styles.summary}>
         <View style={styles.row}>
           <SansText>Subtotal</SansText>
-          <SansText weight="medium">₹1,090</SansText>
+          <SansText weight="medium">₹{subtotal.toLocaleString('en-IN')}</SansText>
         </View>
         <View style={styles.row}>
           <SansText>Delivery</SansText>
@@ -55,7 +60,7 @@ export default function Checkout() {
         </View>
         <View style={[styles.row, styles.totalRow]}>
           <SansText weight="semi" color={SavorColors.text}>Total</SansText>
-          <SerifText size={22} color={SavorColors.orange}>₹1,090</SerifText>
+          <SerifText size={22} color={SavorColors.orange}>₹{total.toLocaleString('en-IN')}</SerifText>
         </View>
       </View>
 

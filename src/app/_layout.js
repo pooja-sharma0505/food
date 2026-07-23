@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useSavorFonts } from '../hooks/use-savor-fonts';
+import { SignupProvider } from '../hooks/useSignupStore';
 import { SavorColors } from '../constants/savorTheme';
 
 SplashScreen.preventAutoHideAsync();
@@ -26,8 +27,10 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <StatusBar style="dark" />
-      <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }} />
+      <SignupProvider>
+        <StatusBar style="dark" />
+        <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }} />
+      </SignupProvider>
     </SafeAreaProvider>
   );
 }

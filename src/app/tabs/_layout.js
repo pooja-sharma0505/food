@@ -43,10 +43,11 @@ export default function TabLayout() {
         options={{
           title: '',
           tabBarIcon: ({ focused }) => {
-            const isActive = focused || CART_ITEMS.length > 0;
+            const hasItems = CART_ITEMS.length > 0;
             return (
-              <View style={[styles.cartFab, isActive && styles.cartFabActive]}>
+              <View style={[styles.cartFab, focused && styles.cartFabActive]}>
                 <Ionicons name="cart" size={24} color="#fff" />
+                {hasItems && !focused && <View style={styles.badge} />}
               </View>
             );
           },
@@ -110,5 +111,16 @@ const styles = StyleSheet.create({
   cartFabActive: {
     backgroundColor: SavorColors.orange,
     shadowColor: SavorColors.orange,
+  },
+  badge: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: SavorColors.orange,
+    borderWidth: 2,
+    borderColor: SavorColors.brownTab,
   },
 });

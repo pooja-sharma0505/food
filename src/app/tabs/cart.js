@@ -1,5 +1,6 @@
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '../../components/savor/Screen';
 import { SerifText, SansText } from '../../components/savor/SerifText';
@@ -9,7 +10,16 @@ import { CART_ITEMS } from '../../data/mockData';
 
 export default function Cart() {
   const router = useRouter();
-  const total = CART_ITEMS.reduce((sum, i) => sum + i.price * i.qty, 0);
+  const [items, setItems] = useState(CART_ITEMS.map((i) => ({ ...i })));
+  const total = items.reduce((sum, i) => sum + i.price * i.qty, 0);
+
+  const updateQty = (id, delta) => {
+    setItems((prev) =>
+      prev
+        .map((item) => (item.id === id ? { ...item, qty: Math.max(0, item.qty + delta) } : item))
+        .filter((item) => item.qty > 0)
+    );
+  };
 
   return (
     <Screen scroll padBottom contentStyle={styles.pad}>
@@ -18,7 +28,7 @@ export default function Cart() {
         <Ionicons name="cart" size={24} color={SavorColors.orange} />
       </View>
 
-      {CART_ITEMS.map((item) => (
+      {items.map((item) => (
         <View key={item.id} style={styles.card}>
           <View style={styles.thumb}>
             <SansText size={24}>{item.emoji}</SansText>
@@ -31,9 +41,13 @@ export default function Cart() {
             </SansText>
           </View>
           <View style={styles.qty}>
-            <TouchableOpacity><Ionicons name="remove" size={18} /></TouchableOpacity>
+            <TouchableOpacity onPress={() => updateQty(item.id, -1)}>
+              <Ionicons name="remove" size={18} />
+            </TouchableOpacity>
             <SansText weight="semi">{item.qty}</SansText>
-            <TouchableOpacity><Ionicons name="add" size={18} color={SavorColors.orange} /></TouchableOpacity>
+            <TouchableOpacity onPress={() => updateQty(item.id, +1)}>
+              <Ionicons name="add" size={18} color={SavorColors.orange} />
+            </TouchableOpacity>
           </View>
         </View>
       ))}

@@ -1,6 +1,6 @@
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AuthCard } from '../components/savor/AuthCard';
 import { SavorLogo } from '../components/savor/SavorLogo';
 import { SerifText, SansText } from '../components/savor/SerifText';
@@ -10,7 +10,24 @@ import { SavorColors } from '../constants/savorTheme';
 
 export default function OTP() {
   const router = useRouter();
-  const [code, setCode] = useState('832');
+  const [code, setCode] = useState('8321');
+  const [secondsLeft, setSecondsLeft] = useState(24);
+  const [canResend, setCanResend] = useState(false);
+
+  useEffect(() => {
+    if (secondsLeft > 0) {
+      const timer = setTimeout(() => setSecondsLeft((s) => s - 1), 1000);
+      return () => clearTimeout(timer);
+    } else {
+      setCanResend(true);
+    }
+  }, [secondsLeft]);
+
+  const handleResend = () => {
+    if (!canResend) return;
+    setSecondsLeft(24);
+    setCanResend(false);
+  };
 
   return (
     <AuthCard>

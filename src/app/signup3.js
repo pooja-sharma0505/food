@@ -6,9 +6,11 @@ import { ProgressSteps } from '../components/savor/ProgressSteps';
 import { SavorInput } from '../components/savor/SavorInput';
 import { SavorButton } from '../components/savor/SavorButton';
 import { SavorColors, SavorRadius } from '../constants/savorTheme';
+import { useSignupStore } from '../hooks/useSignupStore';
 
 export default function Signup3() {
   const router = useRouter();
+  const { data, update } = useSignupStore();
 
   return (
     <AuthCard>
@@ -18,25 +20,49 @@ export default function Signup3() {
 
       <View style={styles.profile}>
         <View style={styles.avatar}>
-          <SansText size={18} color="#fff" weight="bold">R</SansText>
+          <SansText size={18} color="#fff" weight="bold">
+            {data.name ? data.name.charAt(0).toUpperCase() : 'R'}
+          </SansText>
         </View>
         <View style={{ flex: 1 }}>
-          <SansText weight="semi" color={SavorColors.text}>Rahul Sharma</SansText>
-          <SansText size={13}>rahul@gmail.com</SansText>
+          <SansText weight="semi" color={SavorColors.text}>{data.name || 'Rahul Sharma'}</SansText>
+          <SansText size={13}>{data.email || 'rahul@gmail.com'}</SansText>
         </View>
         <TouchableOpacity onPress={() => router.push('/edit-profile')}>
           <SansText size={13} color={SavorColors.orange} weight="semi">Edit</SansText>
         </TouchableOpacity>
       </View>
 
-      <SavorInput label="Flat / House no." placeholder="42, Sunrise Apartments" />
-      <SavorInput label="Area / Street" placeholder="Subhash Nagar" focused />
+      <SavorInput
+        label="Flat / House no."
+        value={data.flat}
+        onChangeText={(t) => update({ flat: t })}
+        placeholder="42, Sunrise Apartments"
+      />
+      <SavorInput
+        label="Area / Street"
+        value={data.area}
+        onChangeText={(t) => update({ area: t })}
+        placeholder="Subhash Nagar"
+        focused
+      />
       <View style={styles.row}>
         <View style={styles.half}>
-          <SavorInput label="City" placeholder="Jaipur" />
+          <SavorInput
+            label="City"
+            value={data.city}
+            onChangeText={(t) => update({ city: t })}
+            placeholder="Jaipur"
+          />
         </View>
         <View style={styles.half}>
-          <SavorInput label="Pincode" placeholder="302016" keyboardType="number-pad" />
+          <SavorInput
+            label="Pincode"
+            value={data.pincode}
+            onChangeText={(t) => update({ pincode: t })}
+            placeholder="302016"
+            keyboardType="number-pad"
+          />
         </View>
       </View>
 

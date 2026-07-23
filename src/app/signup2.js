@@ -1,20 +1,23 @@
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
 import { AuthCard } from '../components/savor/AuthCard';
 import { SerifText, SansText } from '../components/savor/SerifText';
 import { ProgressSteps } from '../components/savor/ProgressSteps';
 import { SavorButton } from '../components/savor/SavorButton';
 import { FOOD_PREFS, DIET_TAGS } from '../data/mockData';
 import { SavorColors, SavorRadius } from '../constants/savorTheme';
+import { useSignupStore } from '../hooks/useSignupStore';
 
 export default function Signup2() {
   const router = useRouter();
-  const [selected, setSelected] = useState(['pizza', 'indian', 'healthy']);
-  const [diet, setDiet] = useState('Vegetarian');
+  const { data, update } = useSignupStore();
 
   const toggle = (id) => {
-    setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+    update({
+      preferences: data.preferences.includes(id)
+        ? data.preferences.filter((x) => x !== id)
+        : [...data.preferences, id],
+    });
   };
 
   return (
@@ -25,7 +28,7 @@ export default function Signup2() {
 
       <View style={styles.grid}>
         {FOOD_PREFS.map((item) => {
-          const on = selected.includes(item.id);
+          const on = data.preferences.includes(item.id);
           return (
             <TouchableOpacity
               key={item.id}
@@ -48,10 +51,10 @@ export default function Signup2() {
         {DIET_TAGS.map((tag) => (
           <TouchableOpacity
             key={tag}
-            style={[styles.dietTag, diet === tag && styles.dietActive]}
-            onPress={() => setDiet(tag)}
+            style={[styles.dietTag, data.diet === tag && styles.dietActive]}
+            onPress={() => update({ diet: tag })}
           >
-            <SansText size={13} weight={diet === tag ? 'semi' : 'regular'} color={SavorColors.text}>
+            <SansText size={13} weight={data.diet === tag ? 'semi' : 'regular'} color={SavorColors.text}>
               {tag}
             </SansText>
           </TouchableOpacity>

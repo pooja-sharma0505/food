@@ -5,9 +5,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { SerifText, SansText } from '../components/savor/SerifText';
 import { SavorButton } from '../components/savor/SavorButton';
 import { SavorColors, SavorRadius, SavorShadow } from '../constants/savorTheme';
+import { useSignupStore } from '../hooks/useSignupStore';
 
 export default function Success() {
   const router = useRouter();
+  const { data } = useSignupStore();
+  const firstName = data.name ? data.name.split(' ')[0] : 'Rahul';
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -16,7 +19,7 @@ export default function Success() {
           <Ionicons name="checkmark-circle" size={64} color={SavorColors.successText} />
         </View>
 
-        <SerifText size={28} style={styles.center}>You're all set, Rahul!</SerifText>
+        <SerifText size={28} style={styles.center}>You're all set, {firstName}!</SerifText>
         <SansText size={15} style={[styles.center, styles.sub]}>
           Your Savor account is ready. Start exploring curated flavors near you.
         </SansText>

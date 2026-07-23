@@ -1,4 +1,4 @@
-import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, Text, StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SansText } from './SerifText';
 import { SavorColors, SavorRadius } from '../../constants/savorTheme';
@@ -15,7 +15,12 @@ export function SocialAuth() {
       <SansText style={styles.or}>or</SansText>
       <View style={styles.row}>
         {PROVIDERS.map((p) => (
-          <TouchableOpacity key={p.id} style={styles.btn} activeOpacity={0.8}>
+          <TouchableOpacity
+            key={p.id}
+            style={styles.btn}
+            activeOpacity={0.8}
+            onPress={() => Alert.alert('Coming soon', `${p.id} sign-in will be available shortly.`)}
+          >
             <Ionicons name={p.icon} size={22} color={p.color} />
           </TouchableOpacity>
         ))}
