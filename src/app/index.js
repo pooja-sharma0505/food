@@ -21,6 +21,11 @@ export default function Splash() {
         <SansText size={15} color={SavorColors.textLight} style={styles.subtitle}>
           Restaurant-quality food delivered to your door
         </SansText>
+        <View style={styles.divider}>
+          <View style={styles.dot} />
+          <View style={styles.dot} />
+          <View style={styles.dot} />
+        </View>
       </View>
 
       <View style={styles.footer}>
@@ -55,6 +60,17 @@ const styles = StyleSheet.create({
   },
   title: { textAlign: 'center', marginTop: 28, marginBottom: 12 },
   subtitle: { textAlign: 'center', lineHeight: 24, paddingHorizontal: 12 },
+  divider: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 24,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: SavorColors.orange,
+  },
   footer: { gap: 16, alignItems: 'center' },
   bottom: { textAlign: 'center' },
 });

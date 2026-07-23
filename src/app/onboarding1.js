@@ -6,7 +6,7 @@ export default function Onboarding1() {
   return (
     <OnboardingSlide
       step={0}
-      imageUri="https://cdn-icons-png.flaticon.com/512/3075/3075977.png"
+      iconName="compass-outline"
       title={'Discover Local\nFlavors'}
       description="Browse hundreds of curated restaurants from the finest local chefs."
       buttonLabel="Next →"
