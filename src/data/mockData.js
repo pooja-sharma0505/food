@@ -3,6 +3,7 @@ export const CATEGORIES = [
   { id: 'noodles', label: 'Noodles', icon: '🍜' },
   { id: 'burger', label: 'Burger', icon: '🍔' },
   { id: 'indian', label: 'Indian', icon: '🍛' },
+  { id: 'salad', label: 'Salad', icon: '🥗' },
 ];
 
 export const POPULAR_DISHES = [
@@ -14,6 +15,7 @@ export const POPULAR_DISHES = [
     rating: 4.8,
     emoji: '🍕',
     bg: '#FFE8DC',
+    category: 'pizza',
   },
   {
     id: '2',
@@ -23,6 +25,7 @@ export const POPULAR_DISHES = [
     rating: 4.6,
     emoji: '🥗',
     bg: '#E8F5E9',
+    category: 'salad',
   },
   {
     id: '3',
@@ -32,6 +35,7 @@ export const POPULAR_DISHES = [
     rating: 4.7,
     emoji: '🍛',
     bg: '#FFF3E0',
+    category: 'indian',
   },
 ];
 
@@ -137,6 +141,11 @@ export const MY_ORDERS = [
     status: 'Delivered',
     statusColor: '#2E7D32',
     date: 'Today, 7:45 PM',
+    orderItems: [
+      { id: '1', name: 'Margherita Pizza', price: '₹320', emoji: '🍕', qty: 1 },
+      { id: '2', name: 'Caesar Salad', price: '₹210', emoji: '🥗', qty: 1 },
+      { id: '3', name: 'Mango Lassi', price: '₹120', emoji: '🥤', qty: 1 },
+    ],
   },
   {
     id: 'ORD-8812',
@@ -147,6 +156,11 @@ export const MY_ORDERS = [
     status: 'Delivered',
     statusColor: '#2E7D32',
     date: '28 May, 8:20 PM',
+    orderItems: [
+      { id: '1', name: 'Paneer Tikka', price: '₹280', emoji: '🍛', qty: 1 },
+      { id: '2', name: 'Garlic Naan', price: '₹120', emoji: '🫓', qty: 1 },
+      { id: '3', name: 'Mango Lassi', price: '₹120', emoji: '🥤', qty: 1 },
+    ],
   },
   {
     id: 'ORD-8801',
@@ -157,6 +171,11 @@ export const MY_ORDERS = [
     status: 'Cancelled',
     statusColor: '#C62828',
     date: '25 May, 1:15 PM',
+    orderItems: [
+      { id: '1', name: 'Salmon Roll', price: '₹450', emoji: '🍣', qty: 1 },
+      { id: '2', name: 'Miso Soup', price: '₹180', emoji: '🍜', qty: 1 },
+      { id: '3', name: 'Green Tea', price: '₹60', emoji: '🍵', qty: 1 },
+    ],
   },
 ];
 

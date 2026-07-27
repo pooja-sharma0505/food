@@ -5,7 +5,7 @@ import { PageHeader } from '../components/savor/PageHeader';
 import { SerifText, SansText } from '../components/savor/SerifText';
 import { SavorButton } from '../components/savor/SavorButton';
 import { SavorColors, SavorRadius, SavorShadow } from '../constants/savorTheme';
-import { MY_ORDERS, CART_ITEMS } from '../data/mockData';
+import { MY_ORDERS } from '../data/mockData';
 
 export default function OrderDetail() {
   const router = useRouter();
@@ -30,10 +30,10 @@ export default function OrderDetail() {
       <SansText size={15} weight="semi" color={SavorColors.text} style={styles.section}>
         Items ordered
       </SansText>
-      {CART_ITEMS.map((item) => (
+      {(order.orderItems || []).map((item) => (
         <View key={item.id} style={styles.line}>
           <SansText size={14}>{item.emoji} {item.name}</SansText>
-          <SansText size={14} weight="medium">₹{item.price}</SansText>
+          <SansText size={14} weight="medium">{item.price}</SansText>
         </View>
       ))}
 

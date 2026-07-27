@@ -1,4 +1,4 @@
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,11 +8,17 @@ import { SerifText, SansText } from '../components/savor/SerifText';
 import { SavorButton } from '../components/savor/SavorButton';
 import { SavorColors, SavorRadius, SavorShadow } from '../constants/savorTheme';
 
-const PAYMENTS = ['UPI / PhonePe', 'Cash on Delivery', 'Net Banking'];
+const PAYMENTS = ['UPI / PhonePay', 'Cash on Delivery', 'Net Banking'];
 
 export default function Checkout() {
   const router = useRouter();
   const [payment, setPayment] = useState(PAYMENTS[0]);
+
+  const handlePlaceOrder = () => {
+    Alert.alert('Order Placed', `Your order has been placed successfully using ${payment}.`, [
+      { text: 'OK', onPress: () => router.push('/order-placed') },
+    ]);
+  };
 
   return (
     <Screen scroll padBottom={false} contentStyle={styles.pad}>
@@ -59,7 +65,7 @@ export default function Checkout() {
         </View>
       </View>
 
-      <SavorButton label="Place Order" variant="dark" onPress={() => router.push('/order-placed')} />
+      <SavorButton label="Place Order" variant="dark" onPress={handlePlaceOrder} />
     </Screen>
   );
 }

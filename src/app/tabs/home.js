@@ -12,6 +12,8 @@ export default function Home() {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('pizza');
 
+  const filteredDishes = POPULAR_DISHES.filter((dish) => dish.category === category);
+
   return (
     <Screen scroll padBottom contentStyle={styles.pad}>
       <View style={styles.header}>
@@ -68,7 +70,7 @@ export default function Home() {
       </SansText>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.popularScroll}>
-        {POPULAR_DISHES.map((dish) => (
+        {filteredDishes.map((dish) => (
           <TouchableOpacity
             key={dish.id}
             style={styles.foodCard}

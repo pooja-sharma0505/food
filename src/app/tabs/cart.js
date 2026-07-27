@@ -1,15 +1,24 @@
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '../../components/savor/Screen';
 import { SerifText, SansText } from '../../components/savor/SerifText';
 import { SavorButton } from '../../components/savor/SavorButton';
 import { SavorColors, SavorRadius, SavorShadow } from '../../constants/savorTheme';
-import { CART_ITEMS } from '../../data/mockData';
+import { cartStore } from '../../store/cartStore';
 
 export default function Cart() {
   const router = useRouter();
-  const total = CART_ITEMS.reduce((sum, i) => sum + i.price * i.qty, 0);
+  const [items, setItems] = useState(cartStore.getItems());
+
+  useEffect(() => {
+    return cartStore.subscribe(() => setItems(cartStore.getItems()));
+  }, []);
+
+  const total = items.reduce((sum, i) => sum + i.price * i.qty, 0);
+
+  const handleUpdate = (id, delta) => cartStore.updateItem(id, delta);
 
   return (
     <Screen scroll padBottom contentStyle={styles.pad}>
@@ -18,7 +27,7 @@ export default function Cart() {
         <Ionicons name="cart" size={24} color={SavorColors.orange} />
       </View>
 
-      {CART_ITEMS.map((item) => (
+      {items.map((item) => (
         <View key={item.id} style={styles.card}>
           <View style={styles.thumb}>
             <SansText size={24}>{item.emoji}</SansText>
@@ -31,9 +40,9 @@ export default function Cart() {
             </SansText>
           </View>
           <View style={styles.qty}>
-            <TouchableOpacity><Ionicons name="remove" size={18} /></TouchableOpacity>
+            <TouchableOpacity onPress={() => handleUpdate(item.id, -1)}><Ionicons name="remove" size={18} /></TouchableOpacity>
             <SansText weight="semi">{item.qty}</SansText>
-            <TouchableOpacity><Ionicons name="add" size={18} color={SavorColors.orange} /></TouchableOpacity>
+            <TouchableOpacity onPress={() => handleUpdate(item.id, 1)}><Ionicons name="add" size={18} color={SavorColors.orange} /></TouchableOpacity>
           </View>
         </View>
       ))}

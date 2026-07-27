@@ -1,14 +1,21 @@
 import { View, StyleSheet, Platform } from 'react-native';
 import { Tabs } from 'expo-router';
+import { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { SavorColors, SavorShadow, TAB_BAR_HEIGHT } from '../../constants/savorTheme';
-import { CART_ITEMS } from '../../data/mockData';
+import { cartStore } from '../../store/cartStore';
 
 function TabIcon({ name, focused, color }) {
   return <Ionicons name={name} size={22} color={focused ? SavorColors.orange : color} />;
 }
 
 export default function TabLayout() {
+  const [cartCount, setCartCount] = useState(cartStore.getItemCount());
+
+  useEffect(() => {
+    return cartStore.subscribe(() => setCartCount(cartStore.getItemCount()));
+  }, []);
+
   return (
     <Tabs
       screenOptions={{
@@ -43,7 +50,7 @@ export default function TabLayout() {
         options={{
           title: '',
           tabBarIcon: ({ focused }) => {
-            const isActive = focused || CART_ITEMS.length > 0;
+            const isActive = focused || cartCount > 0;
             return (
               <View style={[styles.cartFab, isActive && styles.cartFabActive]}>
                 <Ionicons name="cart" size={24} color="#fff" />

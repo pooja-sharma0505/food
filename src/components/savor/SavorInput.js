@@ -1,8 +1,21 @@
+import { useState } from 'react';
 import { View, TextInput, StyleSheet } from 'react-native';
 import { SansText } from './SerifText';
 import { SavorColors, SavorRadius } from '../../constants/savorTheme';
 
-export function SavorInput({ label, focused, style, ...props }) {
+export function SavorInput({ label, style, onFocus, onBlur, ...props }) {
+  const [focused, setFocused] = useState(false);
+
+  const handleFocus = (e) => {
+    setFocused(true);
+    onFocus?.(e);
+  };
+
+  const handleBlur = (e) => {
+    setFocused(false);
+    onBlur?.(e);
+  };
+
   return (
     <View style={styles.wrap}>
       {label ? (
@@ -13,6 +26,8 @@ export function SavorInput({ label, focused, style, ...props }) {
       <TextInput
         placeholderTextColor={SavorColors.textLight}
         style={[styles.input, focused && styles.inputFocused, style]}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
         {...props}
       />
     </View>

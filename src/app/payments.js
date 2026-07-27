@@ -1,4 +1,4 @@
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '../components/savor/Screen';
 import { PageHeader } from '../components/savor/PageHeader';
@@ -8,6 +8,17 @@ import { SavorColors, SavorRadius, SavorShadow } from '../constants/savorTheme';
 import { PAYMENT_METHODS } from '../data/mockData';
 
 export default function Payments() {
+  const handleSetDefault = (pm) => {
+    Alert.alert('Set as Default', `Set "${pm.label}" as your default payment method?`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Set Default', style: 'default' },
+    ]);
+  };
+
+  const handleAddNew = () => {
+    Alert.alert('Add Payment Method', 'Add a new payment method.', [{ text: 'OK' }]);
+  };
+
   return (
     <Screen scroll padBottom={false} contentStyle={styles.pad}>
       <PageHeader title="Payment Methods" />
@@ -24,14 +35,14 @@ export default function Payments() {
           {pm.default ? (
             <Ionicons name="checkmark-circle" size={24} color={SavorColors.orange} />
           ) : (
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => handleSetDefault(pm)}>
               <SansText size={13} color={SavorColors.textMuted}>Set default</SansText>
             </TouchableOpacity>
           )}
         </View>
       ))}
 
-      <SavorButton label="+ Add Payment Method" variant="ghost" onPress={() => {}} style={styles.add} />
+      <SavorButton label="+ Add Payment Method" variant="ghost" onPress={handleAddNew} style={styles.add} />
     </Screen>
   );
 }

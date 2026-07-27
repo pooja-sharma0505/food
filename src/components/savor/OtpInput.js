@@ -1,19 +1,34 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { View, TextInput, StyleSheet } from 'react-native';
 import { SavorColors, SavorRadius } from '../../constants/savorTheme';
 
 export function OtpInput({ length = 4, value, onChange }) {
   const refs = useRef([]);
+  const [prevValue, setPrevValue] = useState(value);
 
   const digits = value.padEnd(length, ' ').split('').slice(0, length);
 
   const handleChange = (text, index) => {
     const clean = text.replace(/\D/g, '');
+
+    // Detect backspace: text got shorter or is empty while previous had content
+    const isBackspace = text.length < prevValue.length || (text === '' && prevValue.length > 0);
+    setPrevValue(text);
+
     const arr = digits.map((d) => (d === ' ' ? '' : d));
-    arr[index] = clean.slice(-1);
-    const next = arr.join('').trim();
-    onChange(next);
-    if (clean && index < length - 1) refs.current[index + 1]?.focus();
+
+    if (clean) {
+      arr[index] = clean.slice(-1);
+      const next = arr.join('').trim();
+      onChange(next);
+      if (index < length - 1) refs.current[index + 1]?.focus();
+    } else if (isBackspace && index > 0) {
+      // Clear current and move focus back
+      arr[index] = '';
+      const next = arr.join('').trim();
+      onChange(next);
+      refs.current[index - 1]?.focus();
+    }
   };
 
   return (

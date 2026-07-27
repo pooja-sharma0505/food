@@ -1,5 +1,6 @@
 import { View, TextInput, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useState } from 'react';
 import { Screen } from '../components/savor/Screen';
 import { PageHeader } from '../components/savor/PageHeader';
 import { SerifText, SansText } from '../components/savor/SerifText';
@@ -13,6 +14,14 @@ const DISHES = [
 
 export default function Review() {
   const router = useRouter();
+  const [reviewText, setReviewText] = useState('');
+
+  const handleSubmit = () => {
+    if (!reviewText.trim()) {
+      return;
+    }
+    router.replace('/tabs/home');
+  };
 
   return (
     <Screen scroll padBottom={false} contentStyle={styles.pad}>
@@ -24,7 +33,9 @@ export default function Review() {
       <TextInput
         style={styles.input}
         multiline
-        defaultValue="The pizza was absolutely delicious! Crispy crust and fresh toppings. Will order again!"
+        value={reviewText}
+        onChangeText={setReviewText}
+        placeholder="Tell us about your experience..."
         placeholderTextColor={SavorColors.textLight}
       />
 
@@ -39,7 +50,7 @@ export default function Review() {
         </View>
       ))}
 
-      <SavorButton label="Submit Review" onPress={() => router.replace('/tabs/home')} style={styles.btn} />
+      <SavorButton label="Submit Review" onPress={handleSubmit} style={styles.btn} />
     </Screen>
   );
 }

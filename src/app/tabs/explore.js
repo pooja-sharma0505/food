@@ -14,6 +14,10 @@ export default function Explore() {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('All');
 
+  const filtered = filter === 'All'
+    ? RESTAURANTS
+    : RESTAURANTS.filter((r) => r.tags.includes(filter));
+
   return (
     <Screen scroll padBottom contentStyle={styles.pad}>
       <SerifText size={32} style={styles.title}>Explore</SerifText>
@@ -45,7 +49,7 @@ export default function Explore() {
         })}
       </ScrollView>
 
-      {RESTAURANTS.map((r) => (
+      {filtered.map((r) => (
         <TouchableOpacity
           key={r.id}
           style={styles.card}

@@ -1,4 +1,4 @@
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '../components/savor/Screen';
 import { PageHeader } from '../components/savor/PageHeader';
@@ -8,6 +8,17 @@ import { SavorColors, SavorRadius, SavorShadow } from '../constants/savorTheme';
 import { ADDRESSES } from '../data/mockData';
 
 export default function Addresses() {
+  const handleEdit = (addr) => {
+    Alert.alert('Edit Address', `Edit "${addr.label}" address.`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'OK' },
+    ]);
+  };
+
+  const handleAddNew = () => {
+    Alert.alert('Add Address', 'Add a new delivery address.', [{ text: 'OK' }]);
+  };
+
   return (
     <Screen scroll padBottom={false} contentStyle={styles.pad}>
       <PageHeader title="Saved Addresses" />
@@ -29,13 +40,13 @@ export default function Addresses() {
             <SansText size={13}>{addr.line1}</SansText>
             <SansText size={13}>{addr.line2} — {addr.pin}</SansText>
           </View>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => handleEdit(addr)}>
             <SansText size={13} color={SavorColors.orange} weight="semi">Edit</SansText>
           </TouchableOpacity>
         </View>
       ))}
 
-      <SavorButton label="+ Add New Address" variant="ghost" onPress={() => {}} style={styles.add} />
+      <SavorButton label="+ Add New Address" variant="ghost" onPress={handleAddNew} style={styles.add} />
     </Screen>
   );
 }
