@@ -5,10 +5,6 @@ const db = require('../config/db');
 /**
  * GET /api/categories
  * Returns all active categories ordered by sort_order.
-<<<<<<< HEAD
-=======
- * Replaces CATEGORIES from mockData.js
->>>>>>> d2c8c96 (Initial commit)
  */
 router.get('/', async (req, res) => {
   try {

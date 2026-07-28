@@ -1,12 +1,12 @@
 {
   "buildCommand": "npx expo export -p web",
-  "outputDirectory": "dist",
+  "outputDirectory": "web-build",
   "devCommand": "npx expo start",
   "cleanUrls": true,
   "framework": null,
   "rewrites": [
     {
-      "source": "/:path*",
+      "source": "/:path((?!api/).*)",
       "destination": "/"
     }
   ]

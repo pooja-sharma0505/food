@@ -6,10 +6,6 @@ const db = require('../config/db');
  * GET /api/foods
  * Returns all available food items.
  * Optional ?category=<slug> filter — e.g. /api/foods?category=pizza
-<<<<<<< HEAD
-=======
- * Replaces MENU_ITEMS from mockData.js
->>>>>>> d2c8c96 (Initial commit)
  */
 router.get('/', async (req, res) => {
   try {

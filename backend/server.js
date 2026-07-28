@@ -23,11 +23,8 @@ app.use('/api/orders', require('./routes/orders'));
 app.use('/api/addresses', require('./routes/addresses'));
 app.use('/api/favourites', require('./routes/favourites'));
 app.use('/api/payments', require('./routes/payments'));
-<<<<<<< HEAD
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/config', require('./routes/config'));
-=======
->>>>>>> d2c8c96 (Initial commit)
 
 // Health check
 app.get('/api/health', (req, res) => {
