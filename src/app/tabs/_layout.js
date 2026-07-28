@@ -3,17 +3,29 @@ import { Tabs } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { SavorColors, SavorShadow, TAB_BAR_HEIGHT } from '../../constants/savorTheme';
-import { cartStore } from '../../store/cartStore';
+import { fetchCart } from '../../services/api';
 
 function TabIcon({ name, focused, color }) {
   return <Ionicons name={name} size={22} color={focused ? SavorColors.orange : color} />;
 }
 
 export default function TabLayout() {
-  const [cartCount, setCartCount] = useState(cartStore.getItemCount());
+  const [cartCount, setCartCount] = useState(0);
 
   useEffect(() => {
-    return cartStore.subscribe(() => setCartCount(cartStore.getItemCount()));
+    const loadCartCount = async () => {
+      try {
+        const cart = await fetchCart();
+        setCartCount(cart.items?.length || 0);
+      } catch (err) {
+        // Silently fail — user might not be logged in
+        setCartCount(0);
+      }
+    };
+
+    loadCartCount();
+    const interval = setInterval(loadCartCount, 30000); // Refresh every 30s
+    return () => clearInterval(interval);
   }, []);
 
   return (

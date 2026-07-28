@@ -1,4 +1,4 @@
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { AuthCard } from '../components/savor/AuthCard';
@@ -9,11 +9,34 @@ import { SavorInput } from '../components/savor/SavorInput';
 import { SavorButton } from '../components/savor/SavorButton';
 import { SocialAuth } from '../components/savor/SocialAuth';
 import { SavorColors } from '../constants/savorTheme';
+import { login } from '../services/api';
 
 export default function Login() {
   const router = useRouter();
   const [tab, setTab] = useState('email');
-  const [email, setEmail] = useState('rahul@gmail.com');
+  const [email, setEmail] = useState('rahul@example.com');
+  const [password, setPassword] = useState('password');
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please enter email and password.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const data = await login(email, password);
+      if (data.success) {
+        router.replace('/tabs/home');
+      } else {
+        Alert.alert('Login Failed', data.message || 'Invalid credentials.');
+      }
+    } catch (err) {
+      Alert.alert('Login Failed', err.message || 'Something went wrong.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <AuthCard>
@@ -43,7 +66,13 @@ export default function Login() {
             keyboardType="email-address"
             autoCapitalize="none"
           />
-          <SavorInput label="Password" secureTextEntry placeholder="••••••••" />
+          <SavorInput
+            label="Password"
+            secureTextEntry
+            placeholder="••••••••"
+            value={password}
+            onChangeText={setPassword}
+          />
         </>
       ) : (
         <SavorInput label="Phone number" placeholder="+91 98765 43210" keyboardType="phone-pad" />
@@ -56,8 +85,10 @@ export default function Login() {
       </TouchableOpacity>
 
       <SavorButton
-        label="Sign in"
-        onPress={() => (tab === 'phone' ? router.push('/otp') : router.replace('/tabs/home'))}
+        label={loading ? 'Signing in...' : 'Sign in'}
+        onPress={handleLogin}
+        disabled={loading}
+        loading={loading}
         style={styles.btn}
       />
 

@@ -1,18 +1,80 @@
-import { View, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Screen } from '../../components/savor/Screen';
 import { SerifText, SansText } from '../../components/savor/SerifText';
 import { SearchBar } from '../../components/savor/SearchBar';
 import { SavorColors, SavorRadius, SavorShadow } from '../../constants/savorTheme';
-import { CATEGORIES, POPULAR_DISHES } from '../../data/mockData';
+import { fetchCategories, fetchFoods } from '../../services/api';
+
+// Map category slug to a background color for food cards
+const CATEGORY_BG = {
+  pizza: '#FFE8DC',
+  burger: '#FFF3E0',
+  indian: '#E8F5E9',
+  chinese: '#E3F2FD',
+  desserts: '#FCE4EC',
+  drinks: '#E0F7FA',
+};
 
 export default function Home() {
   const router = useRouter();
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('pizza');
+  const [categories, setCategories] = useState([]);
+  const [foods, setFoods] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredDishes = POPULAR_DISHES.filter((dish) => dish.category === category);
+  // Fetch categories once on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const cats = await fetchCategories();
+        setCategories(cats);
+        if (cats.length > 0 && !category || !cats.find((c) => c.slug === category)) {
+          setCategory(cats[0].slug);
+        }
+      } catch (err) {
+        console.error('Failed to fetch categories:', err.message);
+      }
+    })();
+  }, []);
+
+  // Fetch foods whenever the selected category changes
+  useEffect(() => {
+    if (!category) return;
+    (async () => {
+      setLoading(true);
+      try {
+        const data = await fetchFoods({ category });
+        setFoods(data);
+      } catch (err) {
+        console.error('Failed to fetch foods:', err.message);
+        setFoods([]);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [category]);
+
+  // Map API category objects to the format the UI expects
+  const categoryChips = categories.map((c) => ({
+    id: c.slug,
+    label: c.name,
+    icon: c.icon,
+  }));
+
+  // Map API food objects to the format the UI expects
+  const popularDishes = foods.map((f) => ({
+    id: String(f.id),
+    name: f.name,
+    restaurant: f.restaurant_name,
+    price: `₹${f.discount_price && f.discount_price > 0 ? f.discount_price : f.price}`,
+    rating: parseFloat(f.rating),
+    emoji: f.category_icon || '🍽️',
+    bg: CATEGORY_BG[f.category_slug] || '#F5F5F5',
+    category: f.category_slug,
+  }));
 
   return (
     <Screen scroll padBottom contentStyle={styles.pad}>
@@ -38,7 +100,7 @@ export default function Home() {
       </TouchableOpacity>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsScroll}>
-        {CATEGORIES.map((c) => {
+        {categoryChips.map((c) => {
           const active = category === c.id;
           return (
             <TouchableOpacity
@@ -69,27 +131,31 @@ export default function Home() {
         Popular now
       </SansText>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.popularScroll}>
-        {filteredDishes.map((dish) => (
-          <TouchableOpacity
-            key={dish.id}
-            style={styles.foodCard}
-            onPress={() => router.push('/restaurant')}
-            activeOpacity={0.9}
-          >
-            <View style={[styles.foodImg, { backgroundColor: dish.bg }]}>
-              <SansText size={40}>{dish.emoji}</SansText>
-            </View>
-            <SansText size={15} weight="semi" color={SavorColors.text} numberOfLines={1}>
-              {dish.name}
-            </SansText>
-            <SansText size={12}>{dish.restaurant}</SansText>
-            <SansText size={13} color={SavorColors.orange} weight="semi">
-              {dish.price} · ⭐ {dish.rating}
-            </SansText>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      {loading ? (
+        <ActivityIndicator size="large" color={SavorColors.orange} style={{ marginTop: 20 }} />
+      ) : (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.popularScroll}>
+          {popularDishes.map((dish) => (
+            <TouchableOpacity
+              key={dish.id}
+              style={styles.foodCard}
+              onPress={() => router.push('/restaurant')}
+              activeOpacity={0.9}
+            >
+              <View style={[styles.foodImg, { backgroundColor: dish.bg }]}>
+                <SansText size={40}>{dish.emoji}</SansText>
+              </View>
+              <SansText size={15} weight="semi" color={SavorColors.text} numberOfLines={1}>
+                {dish.name}
+              </SansText>
+              <SansText size={12}>{dish.restaurant}</SansText>
+              <SansText size={13} color={SavorColors.orange} weight="semi">
+                {dish.price} · ⭐ {dish.rating}
+              </SansText>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
     </Screen>
   );
 }

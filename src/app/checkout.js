@@ -1,40 +1,118 @@
-import { View, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '../components/savor/Screen';
 import { PageHeader } from '../components/savor/PageHeader';
 import { SerifText, SansText } from '../components/savor/SerifText';
 import { SavorButton } from '../components/savor/SavorButton';
 import { SavorColors, SavorRadius, SavorShadow } from '../constants/savorTheme';
+import { fetchCart, fetchAddresses, placeOrder } from '../services/api';
 
-const PAYMENTS = ['UPI / PhonePay', 'Cash on Delivery', 'Net Banking'];
+const PAYMENTS = ['upi', 'cash', 'card'];
 
 export default function Checkout() {
   const router = useRouter();
   const [payment, setPayment] = useState(PAYMENTS[0]);
+  const [cart, setCart] = useState(null);
+  const [addresses, setAddresses] = useState([]);
+  const [selectedAddress, setSelectedAddress] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const handlePlaceOrder = () => {
-    Alert.alert('Order Placed', `Your order has been placed successfully using ${payment}.`, [
-      { text: 'OK', onPress: () => router.push('/order-placed') },
-    ]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const [cartData, addrData] = await Promise.all([fetchCart(), fetchAddresses()]);
+        setCart(cartData);
+        setAddresses(addrData);
+        if (addrData.length > 0) {
+          const defaultAddr = addrData.find((a) => a.is_default) || addrData[0];
+          setSelectedAddress(defaultAddr);
+        }
+      } catch (err) {
+        console.error('Failed to load checkout data:', err.message);
+        Alert.alert('Error', err.message || 'Failed to load checkout data');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  const handlePlaceOrder = async () => {
+    if (!selectedAddress) {
+      Alert.alert('Error', 'Please select a delivery address.');
+      return;
+    }
+
+    if (!cart || !cart.items || cart.items.length === 0) {
+      Alert.alert('Error', 'Your cart is empty.');
+      return;
+    }
+
+    // Get the restaurant_id from the first cart item
+    const restaurantId = cart.items[0].restaurant_id;
+
+    try {
+      const order = await placeOrder({
+        restaurantId,
+        addressId: selectedAddress.id,
+        paymentMethod: payment,
+      });
+
+      Alert.alert(
+        'Order Placed',
+        `Your order ${order.order_number} has been placed successfully.`,
+        [{ text: 'OK', onPress: () => router.push('/order-placed') }]
+      );
+    } catch (err) {
+      Alert.alert('Error', err.message || 'Failed to place order.');
+    }
   };
+
+  const subtotal = cart?.total || 0;
+  const deliveryFee = cart?.items?.[0]?.delivery_fee ? parseFloat(cart.items[0].delivery_fee) : 0;
+  const total = subtotal + deliveryFee;
+
+  const paymentLabel = {
+    upi: 'UPI / PhonePay',
+    cash: 'Cash on Delivery',
+    card: 'Debit Card',
+  };
+
+  if (loading) {
+    return (
+      <Screen scroll padBottom={false} contentStyle={styles.pad}>
+        <PageHeader title="Checkout" />
+        <ActivityIndicator size="large" color={SavorColors.orange} style={{ marginTop: 40 }} />
+      </Screen>
+    );
+  }
 
   return (
     <Screen scroll padBottom={false} contentStyle={styles.pad}>
       <PageHeader title="Checkout" />
 
       <SansText size={14} weight="semi" color={SavorColors.text}>Delivery address</SansText>
-      <View style={styles.addressCard}>
-        <Ionicons name="home" size={22} color={SavorColors.orange} />
-        <View style={{ flex: 1 }}>
-          <SansText size={14} weight="medium" color={SavorColors.text}>Home</SansText>
-          <SansText size={13}>Subhash Nagar, Jaipur</SansText>
+      {selectedAddress ? (
+        <View style={styles.addressCard}>
+          <Ionicons name="home" size={22} color={SavorColors.orange} />
+          <View style={{ flex: 1 }}>
+            <SansText size={14} weight="medium" color={SavorColors.text}>{selectedAddress.label}</SansText>
+            <SansText size={13}>{selectedAddress.address_line1}, {selectedAddress.city}</SansText>
+          </View>
+          <TouchableOpacity onPress={() => router.push('/addresses')}>
+            <SansText size={13} color={SavorColors.orange} weight="semi">Change</SansText>
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity onPress={() => router.push('/addresses')}>
-          <SansText size={13} color={SavorColors.orange} weight="semi">Change</SansText>
+      ) : (
+        <TouchableOpacity
+          style={styles.addressCard}
+          onPress={() => router.push('/addresses')}
+        >
+          <Ionicons name="add" size={22} color={SavorColors.orange} />
+          <SansText size={14} color={SavorColors.text}>Add a delivery address</SansText>
         </TouchableOpacity>
-      </View>
+      )}
 
       <SansText size={14} weight="semi" color={SavorColors.text} style={styles.section}>
         Payment method
@@ -46,22 +124,24 @@ export default function Checkout() {
           onPress={() => setPayment(p)}
         >
           <View style={[styles.radio, payment === p && styles.radioOn]} />
-          <SansText size={14} weight="medium" color={SavorColors.text}>{p}</SansText>
+          <SansText size={14} weight="medium" color={SavorColors.text}>{paymentLabel[p]}</SansText>
         </TouchableOpacity>
       ))}
 
       <View style={styles.summary}>
         <View style={styles.row}>
           <SansText>Subtotal</SansText>
-          <SansText weight="medium">₹1,090</SansText>
+          <SansText weight="medium">₹{subtotal.toLocaleString('en-IN')}</SansText>
         </View>
         <View style={styles.row}>
           <SansText>Delivery</SansText>
-          <SansText weight="medium" color={SavorColors.successText}>Free</SansText>
+          <SansText weight="medium" color={SavorColors.successText}>
+            {deliveryFee > 0 ? `₹${deliveryFee}` : 'Free'}
+          </SansText>
         </View>
         <View style={[styles.row, styles.totalRow]}>
           <SansText weight="semi" color={SavorColors.text}>Total</SansText>
-          <SerifText size={22} color={SavorColors.orange}>₹1,090</SerifText>
+          <SerifText size={22} color={SavorColors.orange}>₹{total.toLocaleString('en-IN')}</SerifText>
         </View>
       </View>
 
@@ -72,7 +152,6 @@ export default function Checkout() {
 
 const styles = StyleSheet.create({
   pad: { paddingBottom: 40 },
-  title: { marginBottom: 24 },
   section: { marginTop: 20, marginBottom: 10 },
   addressCard: {
     flexDirection: 'row',

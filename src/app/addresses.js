@@ -1,13 +1,31 @@
-import { View, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useState, useEffect } from 'react';
 import { Screen } from '../components/savor/Screen';
 import { PageHeader } from '../components/savor/PageHeader';
 import { SansText } from '../components/savor/SerifText';
 import { SavorButton } from '../components/savor/SavorButton';
 import { SavorColors, SavorRadius, SavorShadow } from '../constants/savorTheme';
-import { ADDRESSES } from '../data/mockData';
+import { fetchAddresses } from '../services/api';
 
 export default function Addresses() {
+  const [addresses, setAddresses] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await fetchAddresses();
+        setAddresses(data);
+      } catch (err) {
+        console.error('Failed to load addresses:', err.message);
+        Alert.alert('Error', err.message || 'Failed to load addresses');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
   const handleEdit = (addr) => {
     Alert.alert('Edit Address', `Edit "${addr.label}" address.`, [
       { text: 'Cancel', style: 'cancel' },
@@ -19,26 +37,35 @@ export default function Addresses() {
     Alert.alert('Add Address', 'Add a new delivery address.', [{ text: 'OK' }]);
   };
 
+  if (loading) {
+    return (
+      <Screen scroll padBottom={false} contentStyle={styles.pad}>
+        <PageHeader title="Saved Addresses" />
+        <ActivityIndicator size="large" color={SavorColors.orange} style={{ marginTop: 40 }} />
+      </Screen>
+    );
+  }
+
   return (
     <Screen scroll padBottom={false} contentStyle={styles.pad}>
       <PageHeader title="Saved Addresses" />
 
-      {ADDRESSES.map((addr) => (
-        <View key={addr.id} style={[styles.card, addr.default && styles.cardDefault]}>
+      {addresses.map((addr) => (
+        <View key={addr.id} style={[styles.card, addr.is_default && styles.cardDefault]}>
           <View style={styles.iconWrap}>
-            <Ionicons name={addr.icon} size={22} color={SavorColors.orange} />
+            <Ionicons name={addr.label === 'Home' ? 'home' : 'briefcase'} size={22} color={SavorColors.orange} />
           </View>
           <View style={styles.info}>
             <View style={styles.labelRow}>
               <SansText size={16} weight="semi" color={SavorColors.text}>{addr.label}</SansText>
-              {addr.default ? (
+              {addr.is_default ? (
                 <View style={styles.defaultBadge}>
                   <SansText size={10} color={SavorColors.orange} weight="semi">DEFAULT</SansText>
                 </View>
               ) : null}
             </View>
-            <SansText size={13}>{addr.line1}</SansText>
-            <SansText size={13}>{addr.line2} — {addr.pin}</SansText>
+            <SansText size={13}>{addr.address_line1}</SansText>
+            <SansText size={13}>{addr.address_line2} — {addr.postal_code}</SansText>
           </View>
           <TouchableOpacity onPress={() => handleEdit(addr)}>
             <SansText size={13} color={SavorColors.orange} weight="semi">Edit</SansText>

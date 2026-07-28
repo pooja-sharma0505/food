@@ -1,28 +1,65 @@
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useState, useEffect } from 'react';
 import { Screen } from '../components/savor/Screen';
 import { PageHeader } from '../components/savor/PageHeader';
 import { SerifText, SansText } from '../components/savor/SerifText';
 import { SavorButton } from '../components/savor/SavorButton';
 import { SavorColors, SavorRadius, SavorShadow } from '../constants/savorTheme';
-import { MY_ORDERS } from '../data/mockData';
+import { fetchOrderById } from '../services/api';
 
 export default function OrderDetail() {
   const router = useRouter();
-  const { id = 'ORD-8820' } = useLocalSearchParams();
-  const order = MY_ORDERS.find((o) => o.id === id) ?? MY_ORDERS[0];
+  const { id } = useLocalSearchParams();
+  const [order, setOrder] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!id) return;
+    (async () => {
+      try {
+        const data = await fetchOrderById(id);
+        setOrder(data);
+      } catch (err) {
+        console.error('Failed to load order:', err.message);
+        Alert.alert('Error', err.message || 'Failed to load order');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <Screen scroll padBottom={false} contentStyle={styles.pad}>
+        <PageHeader title="Order Details" />
+        <ActivityIndicator size="large" color={SavorColors.orange} style={{ marginTop: 40 }} />
+      </Screen>
+    );
+  }
+
+  if (!order) {
+    return (
+      <Screen scroll padBottom={false} contentStyle={styles.pad}>
+        <PageHeader title="Order Details" />
+        <SansText>Order not found.</SansText>
+      </Screen>
+    );
+  }
+
+  const statusColor = order.order_status === 'delivered' ? '#2E7D32' : '#EF6C00';
 
   return (
     <Screen scroll padBottom={false} contentStyle={styles.pad}>
       <PageHeader title="Order Details" />
 
       <View style={styles.hero}>
-        <SansText size={48}>{order.emoji}</SansText>
-        <SerifText size={22} style={styles.center}>{order.restaurant}</SerifText>
-        <SansText size={13} style={styles.center}>{order.id} · {order.date}</SansText>
-        <View style={[styles.statusPill, { backgroundColor: `${order.statusColor}20` }]}>
-          <SansText size={13} weight="semi" style={{ color: order.statusColor }}>
-            {order.status}
+        <SansText size={48}>🍽️</SansText>
+        <SerifText size={22} style={styles.center}>{order.restaurant_name}</SerifText>
+        <SansText size={13} style={styles.center}>#{order.order_number} · {new Date(order.placed_at).toLocaleDateString()}</SansText>
+        <View style={[styles.statusPill, { backgroundColor: `${statusColor}20` }]}>
+          <SansText size={13} weight="semi" style={{ color: statusColor }}>
+            {order.order_status}
           </SansText>
         </View>
       </View>
@@ -30,29 +67,31 @@ export default function OrderDetail() {
       <SansText size={15} weight="semi" color={SavorColors.text} style={styles.section}>
         Items ordered
       </SansText>
-      {(order.orderItems || []).map((item) => (
+      {(order.order_items || []).map((item) => (
         <View key={item.id} style={styles.line}>
-          <SansText size={14}>{item.emoji} {item.name}</SansText>
-          <SansText size={14} weight="medium">{item.price}</SansText>
+          <SansText size={14}>{item.food_name} x{item.quantity}</SansText>
+          <SansText size={14} weight="medium">Rs {parseFloat(item.total_price).toLocaleString('en-IN')}</SansText>
         </View>
       ))}
 
       <View style={styles.summary}>
         <View style={styles.row}>
           <SansText>Subtotal</SansText>
-          <SansText weight="medium">{order.total}</SansText>
+          <SansText weight="medium">Rs {parseFloat(order.subtotal).toLocaleString('en-IN')}</SansText>
         </View>
         <View style={styles.row}>
           <SansText>Delivery</SansText>
-          <SansText weight="medium" color={SavorColors.successText}>Free</SansText>
+          <SansText weight="medium" color={SavorColors.successText}>
+            {parseFloat(order.delivery_fee) > 0 ? `Rs ${order.delivery_fee}` : 'Free'}
+          </SansText>
         </View>
         <View style={[styles.row, styles.totalRow]}>
           <SansText weight="semi" color={SavorColors.text}>Total paid</SansText>
-          <SerifText size={20} color={SavorColors.orange}>{order.total}</SerifText>
+          <SerifText size={20} color={SavorColors.orange}>Rs {parseFloat(order.total_amount).toLocaleString('en-IN')}</SerifText>
         </View>
       </View>
 
-      {order.status === 'Delivered' ? (
+      {order.order_status === 'delivered' ? (
         <>
           <SavorButton label="Rate this order" onPress={() => router.push('/review')} />
           <SavorButton

@@ -1,4 +1,4 @@
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -6,11 +6,30 @@ import { PageHeader } from '../components/savor/PageHeader';
 import { SerifText, SansText } from '../components/savor/SerifText';
 import { SavorButton } from '../components/savor/SavorButton';
 import { SavorColors, SavorRadius } from '../constants/savorTheme';
+import { addToCart } from '../services/api';
 
 export default function ItemDetail() {
   const router = useRouter();
-  const { name = 'Margherita Pizza', price = '₹320', emoji = '🍕' } = useLocalSearchParams();
+  const { name = 'Margherita Pizza', price = 'Rs 320', emoji = '🍕', foodItemId } = useLocalSearchParams();
   const [qty, setQty] = useState(1);
+  const [adding, setAdding] = useState(false);
+
+  const handleAddToCart = async () => {
+    if (!foodItemId) {
+      // No food item ID — just navigate to cart
+      router.push('/tabs/cart');
+      return;
+    }
+    setAdding(true);
+    try {
+      await addToCart(foodItemId, qty);
+      router.push('/tabs/cart');
+    } catch (err) {
+      Alert.alert('Error', err.message || 'Failed to add to cart');
+    } finally {
+      setAdding(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -56,7 +75,7 @@ export default function ItemDetail() {
       </View>
 
       <View style={styles.footer}>
-        <SavorButton label={`Add to Cart – ${price}`} onPress={() => router.push('/tabs/cart')} />
+        <SavorButton label={`Add to Cart – ${price}`} onPress={handleAddToCart} loading={adding} />
       </View>
     </SafeAreaView>
   );
