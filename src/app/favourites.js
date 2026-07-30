@@ -1,4 +1,4 @@
-import { View, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,6 +7,7 @@ import { PageHeader } from '../components/savor/PageHeader';
 import { SansText } from '../components/savor/SerifText';
 import { SavorColors, SavorRadius, SavorShadow } from '../constants/savorTheme';
 import { fetchFavourites } from '../services/api';
+import { showAlert } from '../services/alertHelper';
 
 export default function Favourites() {
   const router = useRouter();
@@ -25,7 +26,7 @@ export default function Favourites() {
       setFavourites(data);
     } catch (err) {
       console.error('Failed to load favourites:', err.message);
-      Alert.alert('Error', err.message || 'Failed to load favourites');
+      showAlert('Error', err.message || 'Failed to load favourites');
     } finally {
       setLoading(false);
     }

@@ -1,4 +1,4 @@
-import { View, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { Screen } from '../components/savor/Screen';
@@ -6,6 +6,7 @@ import { PageHeader } from '../components/savor/PageHeader';
 import { SansText } from '../components/savor/SerifText';
 import { SavorColors, SavorRadius, SavorShadow } from '../constants/savorTheme';
 import { fetchOrders } from '../services/api';
+import { showAlert } from '../services/alertHelper';
 
 export default function Orders() {
   const router = useRouter();
@@ -24,7 +25,7 @@ export default function Orders() {
       setOrders(data);
     } catch (err) {
       console.error('Failed to load orders:', err.message);
-      Alert.alert('Error', err.message || 'Failed to load orders');
+      showAlert('Error', err.message || 'Failed to load orders');
     } finally {
       setLoading(false);
     }

@@ -1,4 +1,4 @@
-import { View, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { AuthCard } from '../components/savor/AuthCard';
@@ -10,6 +10,7 @@ import { SavorButton } from '../components/savor/SavorButton';
 import { SocialAuth } from '../components/savor/SocialAuth';
 import { SavorColors } from '../constants/savorTheme';
 import { login } from '../services/api';
+import { showAlert } from '../services/alertHelper';
 
 export default function Login() {
   const router = useRouter();
@@ -20,7 +21,7 @@ export default function Login() {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Please enter email and password.');
+      showAlert('Error', 'Please enter email and password.');
       return;
     }
     setLoading(true);
@@ -29,10 +30,10 @@ export default function Login() {
       if (data.success) {
         router.replace('/tabs/home');
       } else {
-        Alert.alert('Login Failed', data.message || 'Invalid credentials.');
+        showAlert('Login Failed', data.message || 'Invalid credentials.');
       }
     } catch (err) {
-      Alert.alert('Login Failed', err.message || 'Something went wrong.');
+      showAlert('Login Failed', err.message || 'Something went wrong.');
     } finally {
       setLoading(false);
     }

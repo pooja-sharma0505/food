@@ -1,4 +1,4 @@
-import { StyleSheet, Alert } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { AuthCard } from '../components/savor/AuthCard';
@@ -7,6 +7,7 @@ import { ProgressSteps } from '../components/savor/ProgressSteps';
 import { SavorInput } from '../components/savor/SavorInput';
 import { SavorButton } from '../components/savor/SavorButton';
 import { signup } from '../services/api';
+import { showAlert } from '../services/alertHelper';
 
 export default function Signup1() {
   const router = useRouter();
@@ -17,11 +18,11 @@ export default function Signup1() {
 
   const handleContinue = async () => {
     if (!name || !email || !password) {
-      Alert.alert('Error', 'Please fill in all fields.');
+      showAlert('Error', 'Please fill in all fields.');
       return;
     }
     if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters.');
+      showAlert('Error', 'Password must be at least 6 characters.');
       return;
     }
     setLoading(true);
@@ -31,10 +32,10 @@ export default function Signup1() {
         // Navigate to step 2 (preferences)
         router.push('/signup2');
       } else {
-        Alert.alert('Signup Failed', data.message || 'Something went wrong.');
+        showAlert('Signup Failed', data.message || 'Something went wrong.');
       }
     } catch (err) {
-      Alert.alert('Signup Failed', err.message || 'Something went wrong.');
+      showAlert('Signup Failed', err.message || 'Something went wrong.');
     } finally {
       setLoading(false);
     }

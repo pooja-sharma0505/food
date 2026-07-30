@@ -1,4 +1,4 @@
-import { View, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
 import { Screen } from '../components/savor/Screen';
@@ -7,6 +7,7 @@ import { SansText } from '../components/savor/SerifText';
 import { SavorButton } from '../components/savor/SavorButton';
 import { SavorColors, SavorRadius, SavorShadow } from '../constants/savorTheme';
 import { fetchAddresses } from '../services/api';
+import { showAlert } from '../services/alertHelper';
 
 export default function Addresses() {
   const [addresses, setAddresses] = useState([]);
@@ -19,7 +20,7 @@ export default function Addresses() {
         setAddresses(data);
       } catch (err) {
         console.error('Failed to load addresses:', err.message);
-        Alert.alert('Error', err.message || 'Failed to load addresses');
+        showAlert('Error', err.message || 'Failed to load addresses');
       } finally {
         setLoading(false);
       }
@@ -27,14 +28,14 @@ export default function Addresses() {
   }, []);
 
   const handleEdit = (addr) => {
-    Alert.alert('Edit Address', `Edit "${addr.label}" address.`, [
+    showAlert('Edit Address', `Edit "${addr.label}" address.`, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'OK' },
     ]);
   };
 
   const handleAddNew = () => {
-    Alert.alert('Add Address', 'Add a new delivery address.', [{ text: 'OK' }]);
+    showAlert('Add Address', 'Add a new delivery address.', [{ text: 'OK' }]);
   };
 
   if (loading) {

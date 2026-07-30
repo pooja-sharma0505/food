@@ -1,9 +1,12 @@
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useState, useEffect } from 'react';
 import { Screen } from '../../components/savor/Screen';
 import { SerifText, SansText } from '../../components/savor/SerifText';
 import { SavorColors, SavorRadius, SavorShadow } from '../../constants/savorTheme';
+import { fetchProfile } from '../../services/api';
+import { showAlert } from '../../services/alertHelper';
 
 const MENU = [
   { icon: 'receipt-outline', label: 'My Orders', route: '/orders' },
@@ -13,23 +16,66 @@ const MENU = [
   { icon: 'settings-outline', label: 'Settings', route: '/settings' },
 ];
 
-const STATS = [
-  { value: '42', label: 'Orders', route: '/orders' },
-  { value: '3', label: 'Reviews', route: '/review' },
-  { value: 'Gold', label: 'Status', route: null },
-];
-
 export default function Profile() {
   const router = useRouter();
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = router.addListener('focus', loadProfile);
+    return unsubscribe;
+  }, [router]);
+
+  async function loadProfile() {
+    setLoading(true);
+    try {
+      const data = await fetchProfile();
+      setProfile(data);
+    } catch (err) {
+      console.error('Failed to load profile:', err.message);
+      showAlert('Error', err.message || 'Failed to load profile');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <Screen scroll padBottom contentStyle={styles.pad}>
+        <ActivityIndicator size="large" color={SavorColors.orange} style={{ marginTop: 40 }} />
+      </Screen>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <Screen scroll padBottom contentStyle={styles.pad}>
+        <SerifText size={32} style={styles.title}>Profile</SerifText>
+        <SansText>No profile data available.</SansText>
+      </Screen>
+    );
+  }
+
+  const initials = profile.name
+    ? profile.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
+    : 'U';
+
+  const STATS = [
+    { value: String(profile.order_count || 0), label: 'Orders', route: '/orders' },
+    { value: String(profile.review_count || 0), label: 'Reviews', route: '/review' },
+    { value: profile.status || 'Bronze', label: 'Status', route: null },
+  ];
 
   return (
     <Screen scroll padBottom contentStyle={styles.pad}>
+      <SerifText size={32} style={styles.title}>Profile</SerifText>
+
       <View style={styles.header}>
         <View style={styles.avatar}>
-          <SansText size={28} color="#fff" weight="bold">R</SansText>
+          <SansText size={28} color="#fff" weight="bold">{initials}</SansText>
         </View>
-        <SerifText size={24}>Rahul Sharma</SerifText>
-        <SansText size={14}>rahul@gmail.com</SansText>
+        <SerifText size={24}>{profile.name}</SerifText>
+        <SansText size={14}>{profile.email}</SansText>
       </View>
 
       <View style={styles.stats}>
@@ -67,6 +113,7 @@ export default function Profile() {
 
 const styles = StyleSheet.create({
   pad: { paddingTop: 4 },
+  title: { marginBottom: 20 },
   header: { alignItems: 'center', marginBottom: 24 },
   avatar: {
     width: 88,

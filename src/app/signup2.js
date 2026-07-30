@@ -1,21 +1,60 @@
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AuthCard } from '../components/savor/AuthCard';
 import { SerifText, SansText } from '../components/savor/SerifText';
 import { ProgressSteps } from '../components/savor/ProgressSteps';
 import { SavorButton } from '../components/savor/SavorButton';
-import { FOOD_PREFS, DIET_TAGS } from '../data/mockData';
 import { SavorColors, SavorRadius } from '../constants/savorTheme';
+import { fetchCategories, fetchConfig } from '../services/api';
+import { showAlert } from '../services/alertHelper';
 
 export default function Signup2() {
   const router = useRouter();
-  const [selected, setSelected] = useState(['pizza', 'indian', 'healthy']);
+  const [foodPrefs, setFoodPrefs] = useState([]);
+  const [dietTags, setDietTags] = useState([]);
+  const [selected, setSelected] = useState([]);
   const [diet, setDiet] = useState('Vegetarian');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const [cats, config] = await Promise.all([fetchCategories(), fetchConfig()]);
+        // Map API category objects to the format the UI expects
+        const prefs = cats.map((c) => ({
+          id: c.slug,
+          label: c.name,
+          icon: c.icon || '🍽️',
+        }));
+        setFoodPrefs(prefs);
+        // Pre-select first 3 categories
+        setSelected(prefs.slice(0, 3).map((p) => p.id));
+        // Diet tags from config endpoint
+        setDietTags(config.diet_tags || ['Vegetarian', 'Vegan', 'Non-veg']);
+        setDiet(config.diet_tags?.[0] || 'Vegetarian');
+      } catch (err) {
+        console.error('Failed to fetch preferences:', err.message);
+        showAlert('Error', err.message || 'Failed to load preferences');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
   const toggle = (id) => {
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
+
+  if (loading) {
+    return (
+      <AuthCard>
+        <ProgressSteps step={2} />
+        <SerifText size={26}>Your preferences</SerifText>
+        <ActivityIndicator size="large" color={SavorColors.orange} style={{ marginTop: 40 }} />
+      </AuthCard>
+    );
+  }
 
   return (
     <AuthCard>
@@ -24,7 +63,7 @@ export default function Signup2() {
       <SansText size={14} style={styles.sub}>Step 2 of 3 — What do you love?</SansText>
 
       <View style={styles.grid}>
-        {FOOD_PREFS.map((item) => {
+        {foodPrefs.map((item) => {
           const on = selected.includes(item.id);
           return (
             <TouchableOpacity
@@ -45,7 +84,7 @@ export default function Signup2() {
         Dietary preference
       </SansText>
       <View style={styles.dietRow}>
-        {DIET_TAGS.map((tag) => (
+        {dietTags.map((tag) => (
           <TouchableOpacity
             key={tag}
             style={[styles.dietTag, diet === tag && styles.dietActive]}

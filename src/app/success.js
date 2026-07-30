@@ -1,13 +1,42 @@
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SerifText, SansText } from '../components/savor/SerifText';
 import { SavorButton } from '../components/savor/SavorButton';
 import { SavorColors, SavorRadius, SavorShadow } from '../constants/savorTheme';
+import { fetchProfile } from '../services/api';
+import { showAlert } from '../services/alertHelper';
 
 export default function Success() {
   const router = useRouter();
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await fetchProfile();
+        setProfile(data);
+      } catch (err) {
+        console.error('Failed to load profile:', err.message);
+        showAlert('Error', err.message || 'Failed to load profile');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <ActivityIndicator size="large" color={SavorColors.orange} style={{ marginTop: 40 }} />
+      </SafeAreaView>
+    );
+  }
+
+  const displayName = profile?.name || 'there';
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -16,7 +45,7 @@ export default function Success() {
           <Ionicons name="checkmark-circle" size={64} color={SavorColors.successText} />
         </View>
 
-        <SerifText size={28} style={styles.center}>You're all set, Rahul!</SerifText>
+        <SerifText size={28} style={styles.center}>You're all set, {displayName}!</SerifText>
         <SansText size={15} style={[styles.center, styles.sub]}>
           Your Savor account is ready. Start exploring curated flavors near you.
         </SansText>

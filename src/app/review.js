@@ -1,20 +1,44 @@
-import { View, TextInput, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { View, TextInput, StyleSheet, ActivityIndicator } from 'react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useState, useEffect } from 'react';
 import { Screen } from '../components/savor/Screen';
 import { PageHeader } from '../components/savor/PageHeader';
 import { SerifText, SansText } from '../components/savor/SerifText';
 import { SavorButton } from '../components/savor/SavorButton';
 import { SavorColors, SavorRadius, SavorShadow } from '../constants/savorTheme';
-
-const DISHES = [
-  { name: 'Margherita Pizza', emoji: '🍕', stars: '⭐⭐⭐⭐½' },
-  { name: 'Caesar Salad', emoji: '🥗', stars: '⭐⭐⭐⭐⭐' },
-];
+import { fetchOrderById } from '../services/api';
+import { showAlert } from '../services/alertHelper';
 
 export default function Review() {
   const router = useRouter();
+  const { orderId } = useLocalSearchParams();
   const [reviewText, setReviewText] = useState('');
+  const [dishes, setDishes] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!orderId) {
+      showAlert('Error', 'No order ID provided.');
+      router.back();
+      return;
+    }
+    (async () => {
+      try {
+        const order = await fetchOrderById(orderId);
+        const items = (order.order_items || []).map((item) => ({
+          name: item.food_name,
+          emoji: '🍽️',
+          stars: '⭐⭐⭐⭐☆',
+        }));
+        setDishes(items);
+      } catch (err) {
+        console.error('Failed to load order:', err.message);
+        showAlert('Error', err.message || 'Failed to load order');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [orderId]);
 
   const handleSubmit = () => {
     if (!reviewText.trim()) {
@@ -22,6 +46,15 @@ export default function Review() {
     }
     router.replace('/tabs/home');
   };
+
+  if (loading) {
+    return (
+      <Screen scroll padBottom={false} contentStyle={styles.pad}>
+        <PageHeader title="Rate your order" />
+        <ActivityIndicator size="large" color={SavorColors.orange} style={{ marginTop: 40 }} />
+      </Screen>
+    );
+  }
 
   return (
     <Screen scroll padBottom={false} contentStyle={styles.pad}>
@@ -43,7 +76,7 @@ export default function Review() {
         Rate each dish
       </SansText>
 
-      {DISHES.map((d) => (
+      {dishes.map((d) => (
         <View key={d.name} style={styles.dish}>
           <SansText size={16}>{d.emoji} {d.name}</SansText>
           <SansText size={14}>{d.stars}</SansText>

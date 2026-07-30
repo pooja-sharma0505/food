@@ -1,5 +1,5 @@
 import { View, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SerifText, SansText } from '../components/savor/SerifText';
 import { SavorButton } from '../components/savor/SavorButton';
@@ -7,6 +7,9 @@ import { SavorColors, SavorRadius } from '../constants/savorTheme';
 
 export default function OrderPlaced() {
   const router = useRouter();
+  const { orderId, orderNumber } = useLocalSearchParams();
+
+  const displayNumber = orderNumber || orderId || '—';
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -17,13 +20,16 @@ export default function OrderPlaced() {
         <SerifText size={32} style={styles.center}>Order placed!</SerifText>
         <View style={styles.badge}>
           <SansText size={13} weight="medium" color={SavorColors.textMuted}>
-            Order #ORD-8820
+            Order #{displayNumber}
           </SansText>
         </View>
         <SansText size={15} style={[styles.center, styles.desc]}>
           Your food is being prepared.{'\n'}Estimated delivery: 7:45 PM
         </SansText>
-        <SavorButton label="📍  Track My Order" onPress={() => router.push('/tracking')} />
+        <SavorButton
+          label="📍  Track My Order"
+          onPress={() => router.push({ pathname: '/tracking', params: { orderId } })}
+        />
         <SansText
           size={14}
           color={SavorColors.textMuted}

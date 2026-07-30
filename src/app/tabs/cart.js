@@ -1,4 +1,4 @@
-import { View, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,6 +7,7 @@ import { SerifText, SansText } from '../../components/savor/SerifText';
 import { SavorButton } from '../../components/savor/SavorButton';
 import { SavorColors, SavorRadius, SavorShadow } from '../../constants/savorTheme';
 import { fetchCart, addToCart, removeFromCart } from '../../services/api';
+import { showAlert } from '../../services/alertHelper';
 
 export default function Cart() {
   const router = useRouter();
@@ -19,7 +20,7 @@ export default function Cart() {
       setCart(data);
     } catch (err) {
       console.error('Failed to load cart:', err.message);
-      Alert.alert('Error', err.message || 'Failed to load cart');
+      showAlert('Error', err.message || 'Failed to load cart');
     } finally {
       setLoading(false);
     }
@@ -42,7 +43,7 @@ export default function Cart() {
         const data = await removeFromCart(id);
         setCart(data);
       } catch (err) {
-        Alert.alert('Error', err.message);
+        showAlert('Error', err.message);
       }
       return;
     }
@@ -52,7 +53,7 @@ export default function Cart() {
       const data = await addToCart(item.food_item_id, delta);
       setCart(data);
     } catch (err) {
-      Alert.alert('Error', err.message);
+      showAlert('Error', err.message);
     }
   };
 
@@ -61,7 +62,7 @@ export default function Cart() {
       const data = await removeFromCart(id);
       setCart(data);
     } catch (err) {
-      Alert.alert('Error', err.message);
+      showAlert('Error', err.message);
     }
   };
 

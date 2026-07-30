@@ -189,10 +189,8 @@ myApp/
     │       ├── home.js
     │       └── cart.js
     ├── components/savor/      ← Button, Input, Screen, etc.
-    ├── constants/
+    └── constants/
     │   └── savorTheme.js      ← colors, shadows, radius
-    └── data/
-        └── mockData.js        ← sample restaurants, cart
 ```
 
 Good luck — build one screen at a time and test navigation after each step.

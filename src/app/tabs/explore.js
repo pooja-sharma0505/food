@@ -1,22 +1,64 @@
-import { View, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Screen } from '../../components/savor/Screen';
 import { SerifText, SansText } from '../../components/savor/SerifText';
 import { SearchBar } from '../../components/savor/SearchBar';
 import { SavorColors, SavorRadius, SavorShadow } from '../../constants/savorTheme';
-import { RESTAURANTS } from '../../data/mockData';
+import { fetchRestaurants } from '../../services/api';
+import { showAlert } from '../../services/alertHelper';
 
 const FILTERS = ['All', 'Italian', 'Indian', 'Chinese'];
+
+// Map cuisine keywords to emoji for display
+const CUISINE_EMOJI = {
+  pizza: '🍕',
+  italian: '🍝',
+  indian: '🍛',
+  burger: '🍔',
+  noodles: '🍜',
+  sushi: '🍣',
+  chinese: '🥢',
+  salad: '🥗',
+  mexican: '🌮',
+  thai: '🌶️',
+};
+
+function getCuisineEmoji(cuisine) {
+  if (!cuisine) return '🍽️';
+  const lower = cuisine.toLowerCase();
+  for (const [key, emoji] of Object.entries(CUISINE_EMOJI)) {
+    if (lower.includes(key)) return emoji;
+  }
+  return '🍽️';
+}
 
 export default function Explore() {
   const router = useRouter();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('All');
+  const [restaurants, setRestaurants] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await fetchRestaurants();
+        setRestaurants(data);
+      } catch (err) {
+        console.error('Failed to fetch restaurants:', err.message);
+        showAlert('Error', err.message || 'Failed to load restaurants');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
   const filtered = filter === 'All'
-    ? RESTAURANTS
-    : RESTAURANTS.filter((r) => r.tags.includes(filter));
+    ? restaurants
+    : restaurants.filter((r) =>
+        r.cuisine && r.cuisine.toLowerCase().includes(filter.toLowerCase())
+      );
 
   return (
     <Screen scroll padBottom contentStyle={styles.pad}>
@@ -49,31 +91,35 @@ export default function Explore() {
         })}
       </ScrollView>
 
-      {filtered.map((r) => (
-        <TouchableOpacity
-          key={r.id}
-          style={styles.card}
-          onPress={() => router.push('/restaurant')}
-          activeOpacity={0.9}
-        >
-          <View style={styles.thumb}>
-            <SansText size={32}>{r.emoji}</SansText>
-          </View>
-          <View style={styles.info}>
-            <SansText size={17} weight="semi" color={SavorColors.text}>{r.name}</SansText>
-            <SansText size={13}>
-              ⭐ {r.rating} · {r.time} · {r.fee}
-            </SansText>
-            <View style={styles.tagRow}>
-              {r.cuisines.map((c) => (
-                <View key={c} style={styles.tag}>
-                  <SansText size={11} color={SavorColors.orange}>{c}</SansText>
-                </View>
-              ))}
+      {loading ? (
+        <ActivityIndicator size="large" color={SavorColors.orange} style={{ marginTop: 40 }} />
+      ) : (
+        filtered.map((r) => (
+          <TouchableOpacity
+            key={r.id}
+            style={styles.card}
+            onPress={() => router.push({ pathname: '/restaurant', params: { id: String(r.id) } })}
+            activeOpacity={0.9}
+          >
+            <View style={styles.thumb}>
+              <SansText size={32}>{getCuisineEmoji(r.cuisine)}</SansText>
             </View>
-          </View>
-        </TouchableOpacity>
-      ))}
+            <View style={styles.info}>
+              <SansText size={17} weight="semi" color={SavorColors.text}>{r.name}</SansText>
+              <SansText size={13}>
+                ⭐ {r.rating} · {r.delivery_time_min}-{r.delivery_time_max} min · {r.delivery_fee > 0 ? `₹${r.delivery_fee}` : 'Free delivery'}
+              </SansText>
+              <View style={styles.tagRow}>
+                {(r.cuisine || '').split(',').map((c) => c.trim()).filter(Boolean).map((c) => (
+                  <View key={c} style={styles.tag}>
+                    <SansText size={11} color={SavorColors.orange}>{c.trim()}</SansText>
+                  </View>
+                ))}
+              </View>
+            </View>
+          </TouchableOpacity>
+        ))
+      )}
     </Screen>
   );
 }

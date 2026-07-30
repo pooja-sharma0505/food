@@ -1,4 +1,4 @@
-import { View, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
 import { Screen } from '../components/savor/Screen';
@@ -7,6 +7,7 @@ import { SansText } from '../components/savor/SerifText';
 import { SavorButton } from '../components/savor/SavorButton';
 import { SavorColors, SavorRadius, SavorShadow } from '../constants/savorTheme';
 import { fetchPayments } from '../services/api';
+import { showAlert } from '../services/alertHelper';
 
 export default function Payments() {
   const [payments, setPayments] = useState([]);
@@ -19,7 +20,7 @@ export default function Payments() {
         setPayments(data);
       } catch (err) {
         console.error('Failed to load payments:', err.message);
-        Alert.alert('Error', err.message || 'Failed to load payments');
+        showAlert('Error', err.message || 'Failed to load payments');
       } finally {
         setLoading(false);
       }
@@ -27,14 +28,14 @@ export default function Payments() {
   }, []);
 
   const handleSetDefault = (pm) => {
-    Alert.alert('Set as Default', `Set "${pm.label}" as your default payment method?`, [
+    showAlert('Set as Default', `Set "${pm.label}" as your default payment method?`, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Set Default', style: 'default' },
     ]);
   };
 
   const handleAddNew = () => {
-    Alert.alert('Add Payment Method', 'Add a new payment method.', [{ text: 'OK' }]);
+    showAlert('Add Payment Method', 'Add a new payment method.', [{ text: 'OK' }]);
   };
 
   const paymentLabel = {

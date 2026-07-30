@@ -1,4 +1,4 @@
-import { View, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,6 +8,7 @@ import { SerifText, SansText } from '../components/savor/SerifText';
 import { SavorButton } from '../components/savor/SavorButton';
 import { SavorColors, SavorRadius, SavorShadow } from '../constants/savorTheme';
 import { fetchCart, fetchAddresses, placeOrder } from '../services/api';
+import { showAlert } from '../services/alertHelper';
 
 const PAYMENTS = ['upi', 'cash', 'card'];
 
@@ -31,7 +32,7 @@ export default function Checkout() {
         }
       } catch (err) {
         console.error('Failed to load checkout data:', err.message);
-        Alert.alert('Error', err.message || 'Failed to load checkout data');
+        showAlert('Error', err.message || 'Failed to load checkout data');
       } finally {
         setLoading(false);
       }
@@ -40,12 +41,12 @@ export default function Checkout() {
 
   const handlePlaceOrder = async () => {
     if (!selectedAddress) {
-      Alert.alert('Error', 'Please select a delivery address.');
+      showAlert('Error', 'Please select a delivery address.');
       return;
     }
 
     if (!cart || !cart.items || cart.items.length === 0) {
-      Alert.alert('Error', 'Your cart is empty.');
+      showAlert('Error', 'Your cart is empty.');
       return;
     }
 
@@ -59,13 +60,19 @@ export default function Checkout() {
         paymentMethod: payment,
       });
 
-      Alert.alert(
+      showAlert(
         'Order Placed',
         `Your order ${order.order_number} has been placed successfully.`,
-        [{ text: 'OK', onPress: () => router.push('/order-placed') }]
+        [{
+          text: 'OK',
+          onPress: () => router.push({
+            pathname: '/order-placed',
+            params: { orderId: order.id, orderNumber: order.order_number },
+          }),
+        }]
       );
     } catch (err) {
-      Alert.alert('Error', err.message || 'Failed to place order.');
+      showAlert('Error', err.message || 'Failed to place order.');
     }
   };
 

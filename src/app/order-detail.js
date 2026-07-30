@@ -1,4 +1,4 @@
-import { View, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { Screen } from '../components/savor/Screen';
@@ -7,6 +7,7 @@ import { SerifText, SansText } from '../components/savor/SerifText';
 import { SavorButton } from '../components/savor/SavorButton';
 import { SavorColors, SavorRadius, SavorShadow } from '../constants/savorTheme';
 import { fetchOrderById } from '../services/api';
+import { showAlert } from '../services/alertHelper';
 
 export default function OrderDetail() {
   const router = useRouter();
@@ -22,7 +23,7 @@ export default function OrderDetail() {
         setOrder(data);
       } catch (err) {
         console.error('Failed to load order:', err.message);
-        Alert.alert('Error', err.message || 'Failed to load order');
+        showAlert('Error', err.message || 'Failed to load order');
       } finally {
         setLoading(false);
       }
@@ -93,7 +94,10 @@ export default function OrderDetail() {
 
       {order.order_status === 'delivered' ? (
         <>
-          <SavorButton label="Rate this order" onPress={() => router.push('/review')} />
+          <SavorButton
+            label="Rate this order"
+            onPress={() => router.push({ pathname: '/review', params: { orderId: String(order.id) } })}
+          />
           <SavorButton
             label="Reorder"
             variant="ghost"

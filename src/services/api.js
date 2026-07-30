@@ -1,7 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Backend API base URL — update this to your machine's LAN IP
-export const API_BASE_URL = 'http://192.168.1.19:5000/api';
+// Backend API base URL — configurable via EXPO_PUBLIC_API_URL env var.
+// Falls back to localhost for local development.
+// Set EXPO_PUBLIC_API_URL for production (e.g. Vercel) deployments.
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 const TOKEN_KEY = 'savor_auth_token';
 
@@ -51,10 +53,20 @@ export async function apiFetch(path, options = {}) {
     ...options.headers,
   };
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers,
-  });
+  let response;
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      ...options,
+      headers,
+    });
+  } catch (err) {
+    // fetch() throws a TypeError when the network request fails entirely
+    // (e.g. host unreachable, DNS failure, CORS block).
+    if (err instanceof TypeError) {
+      throw new Error("Can't reach the server. Check your connection.");
+    }
+    throw err;
+  }
 
   const data = await response.json().catch(() => ({ success: false, message: 'Network error' }));
 
@@ -112,6 +124,21 @@ export async function logout() {
   await removeToken();
 }
 
+// ─── Profile routes ─────────────────────────────────────────────
+
+export async function fetchProfile() {
+  const data = await apiFetch('/me');
+  return data.data;
+}
+
+export async function updateProfile({ name, email, phone }) {
+  const data = await apiFetch('/me', {
+    method: 'PUT',
+    body: JSON.stringify({ name, email, phone }),
+  });
+  return data.data;
+}
+
 // ─── Cart routes ────────────────────────────────────────────────
 
 export async function fetchCart() {
@@ -141,6 +168,11 @@ export async function fetchOrders() {
 
 export async function fetchOrderById(id) {
   const data = await apiFetch(`/orders/${id}`);
+  return data.data;
+}
+
+export async function fetchOrderTracking(id) {
+  const data = await apiFetch(`/orders/${id}/tracking`);
   return data.data;
 }
 
@@ -175,5 +207,19 @@ export async function fetchFavourites() {
 
 export async function fetchPayments() {
   const data = await apiFetch('/payments');
+  return data.data;
+}
+
+// ─── Notifications routes ───────────────────────────────────────
+
+export async function fetchNotifications() {
+  const data = await apiFetch('/notifications');
+  return data.data;
+}
+
+// ─── Config routes ──────────────────────────────────────────────
+
+export async function fetchConfig() {
+  const data = await apiFetch('/config');
   return data.data;
 }

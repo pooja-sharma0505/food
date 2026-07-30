@@ -1,4 +1,4 @@
-import { View, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,6 +7,7 @@ import { SerifText, SansText } from '../components/savor/SerifText';
 import { SavorButton } from '../components/savor/SavorButton';
 import { SavorColors, SavorRadius } from '../constants/savorTheme';
 import { addToCart } from '../services/api';
+import { showAlert } from '../services/alertHelper';
 
 export default function ItemDetail() {
   const router = useRouter();
@@ -25,7 +26,7 @@ export default function ItemDetail() {
       await addToCart(foodItemId, qty);
       router.push('/tabs/cart');
     } catch (err) {
-      Alert.alert('Error', err.message || 'Failed to add to cart');
+      showAlert('Error', err.message || 'Failed to add to cart');
     } finally {
       setAdding(false);
     }
