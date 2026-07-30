@@ -3,7 +3,10 @@ const router = express.Router();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const db = require('../config/db');
+<<<<<<< HEAD
 const auth = require('../middleware/auth');
+=======
+>>>>>>> d2c8c96 (Initial commit)
 require('dotenv').config();
 
 const SALT_ROUNDS = 10;
@@ -122,6 +125,7 @@ router.post('/login', async (req, res) => {
   }
 });
 
+<<<<<<< HEAD
 /**
  * GET /api/me
  * Returns the authenticated user's profile along with order and review counts.
@@ -219,4 +223,6 @@ router.put('/me', auth, async (req, res) => {
   }
 });
 
+=======
+>>>>>>> d2c8c96 (Initial commit)
 module.exports = router;

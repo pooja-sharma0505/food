@@ -5,6 +5,10 @@ const db = require('../config/db');
 /**
  * GET /api/restaurants
  * Returns all active restaurants.
+<<<<<<< HEAD
+=======
+ * Replaces RESTAURANTS from mockData.js
+>>>>>>> d2c8c96 (Initial commit)
  */
 router.get('/', async (req, res) => {
   try {

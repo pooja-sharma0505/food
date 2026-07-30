@@ -39,6 +39,7 @@ router.get('/', auth, async (req, res) => {
 });
 
 /**
+<<<<<<< HEAD
  * GET /api/orders/:id/tracking
  * Returns tracking history for a specific order.
  */
@@ -69,6 +70,8 @@ router.get('/:id/tracking', auth, async (req, res) => {
 });
 
 /**
+=======
+>>>>>>> d2c8c96 (Initial commit)
  * GET /api/orders/:id
  * Returns details of a specific order, including order_items.
  */
