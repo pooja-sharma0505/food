@@ -9,5 +9,6 @@
       "source": "/:path((?!api/).*)",
       "destination": "/"
     }
-  ]
+  ],
+  "regions": ["iad1"]
 }
