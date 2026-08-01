@@ -1,9 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Backend API base URL — configurable via EXPO_PUBLIC_API_URL env var.
-// Falls back to localhost for local development.
+// Falls back to LAN IP for local development (backend running on port 5000).
 // Set EXPO_PUBLIC_API_URL for production (e.g. Vercel) deployments.
-export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api';
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.19:5000/api';
 
 const TOKEN_KEY = 'savor_auth_token';
 

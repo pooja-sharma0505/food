@@ -20,13 +20,11 @@ if (process.env.DB_SOCKET) {
   dbConfig.socketPath = process.env.DB_SOCKET;
 }
 
-// TiDB Cloud (and most managed MySQL-compatible hosts) require TLS.
-if (process.env.DB_SSL_CA) {
-  dbConfig.ssl = {
-    ca: fs.readFileSync(process.env.DB_SSL_CA),
-    minVersion: 'TLSv1.2',
-  };
-}
+// TiDB Cloud requires TLS.
+// Use rejectUnauthorized: false for TiDB Cloud connections.
+dbConfig.ssl = {
+  rejectUnauthorized: false
+};
 
 const pool = mysql.createPool(dbConfig);
 
