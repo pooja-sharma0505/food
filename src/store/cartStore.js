@@ -1,7 +1,7 @@
-import { fetchCart } from '../services/api';
+import { cartStore as mockCartStore } from '../data/cart';
 
 // Simple event-based cart store so cart.js and the tab layout share real state.
-// Initialized from the backend API (fetchCart) instead of static mock data.
+// Now initialized from the mock data cart store instead of the backend API.
 let listeners = new Set();
 let cartItems = [];
 let cartTotal = 0;
@@ -9,16 +9,16 @@ let initialized = false;
 
 export const cartStore = {
   /**
-   * Initialize the store from the backend. Safe to call multiple times.
+   * Initialize the store from the mock cart data. Safe to call multiple times.
    */
-  async init() {
+  init() {
     if (initialized) return;
     try {
-      const cart = await fetchCart();
+      const cart = mockCartStore.getCart();
       cartItems = cart.items || [];
       cartTotal = cart.total || 0;
     } catch (err) {
-      // User may not be logged in — start with an empty cart
+      // Start with an empty cart
       cartItems = [];
       cartTotal = 0;
     }
@@ -39,22 +39,12 @@ export const cartStore = {
 
   /**
    * Update a cart item's quantity.
-   * Note: In the current app, cart mutations go through the API
-   * (addToCart / removeFromCart in api.js). This method is kept for
-   * local optimistic updates if needed.
+   * Delegates to the mock cart store for consistency.
    */
   updateItem(id, delta) {
-    cartItems = cartItems
-      .map((item) =>
-        item.id === id
-          ? { ...item, quantity: Math.max(0, item.quantity + delta) }
-          : item
-      )
-      .filter((item) => item.quantity > 0);
-    cartTotal = cartItems.reduce(
-      (sum, i) => sum + (i.effective_price || i.price || 0) * i.quantity,
-      0
-    );
+    const result = mockCartStore.updateQuantity(id, delta);
+    cartItems = result.items || [];
+    cartTotal = result.total || 0;
     listeners.forEach((cb) => cb());
   },
 

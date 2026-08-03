@@ -1,15 +1,34 @@
+/**
+ * Savor App — Mock API Service
+ * ─────────────────────────────────────────────────────────────
+ * This file replaces the original backend API client with local
+ * mock data.  Every function keeps the same signature and return
+ * shape so that no frontend component needs to change.
+ *
+ * All data lives in src/data/*.js.  Mutable state (cart, orders)
+ * is kept in-memory inside the mock data modules.
+ */
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Backend API base URL — configurable via EXPO_PUBLIC_API_URL env var.
-// Falls back to localhost for local development.
-// Set EXPO_PUBLIC_API_URL for production (e.g. Vercel) deployments.
-export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api';
+// ─── Mock data imports ──────────────────────────────────────
+import { addresses } from '../data/addresses';
+import { dummyToken, dummyUser } from '../data/auth';
+import { cartStore as mockCartStore } from '../data/cart';
+import { categories } from '../data/categories';
+import { config } from '../data/config';
+import { favourites } from '../data/favourites';
+import { foods } from '../data/foods';
+import { notifications } from '../data/notifications';
+import { orders as mockOrders } from '../data/orders';
+import { payments } from '../data/payments';
+import { profile as mockProfile } from '../data/profile';
+import { restaurants } from '../data/restaurants';
+import { tracking as mockTracking } from '../data/tracking';
 
+// ─── Token helpers (still use AsyncStorage for auth flow) ───
 const TOKEN_KEY = 'savor_auth_token';
 
-/**
- * Retrieve the JWT token from AsyncStorage.
- */
 export async function getToken() {
   try {
     return await AsyncStorage.getItem(TOKEN_KEY);
@@ -19,9 +38,6 @@ export async function getToken() {
   }
 }
 
-/**
- * Save the JWT token to AsyncStorage.
- */
 export async function saveToken(token) {
   try {
     await AsyncStorage.setItem(TOKEN_KEY, token);
@@ -30,9 +46,6 @@ export async function saveToken(token) {
   }
 }
 
-/**
- * Remove the JWT token from AsyncStorage.
- */
 export async function removeToken() {
   try {
     await AsyncStorage.removeItem(TOKEN_KEY);
@@ -41,185 +54,243 @@ export async function removeToken() {
   }
 }
 
-/**
- * Core fetch wrapper — automatically attaches the JWT Bearer token.
- */
-export async function apiFetch(path, options = {}) {
-  const token = await getToken();
-
-  const headers = {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...options.headers,
-  };
-
-  let response;
-  try {
-    response = await fetch(`${API_BASE_URL}${path}`, {
-      ...options,
-      headers,
-    });
-  } catch (err) {
-    // fetch() throws a TypeError when the network request fails entirely
-    // (e.g. host unreachable, DNS failure, CORS block).
-    if (err instanceof TypeError) {
-      throw new Error("Can't reach the server. Check your connection.");
-    }
-    throw err;
-  }
-
-  const data = await response.json().catch(() => ({ success: false, message: 'Network error' }));
-
-  if (!response.ok) {
-    throw new Error(data.message || `HTTP ${response.status}`);
-  }
-
-  return data;
-}
-
-// ─── Read-only routes ───────────────────────────────────────────
+// ─── Read-only routes ───────────────────────────────────────
 
 export async function fetchCategories() {
-  const data = await apiFetch('/categories');
-  return data.data;
+  return [...categories];
 }
 
 export async function fetchRestaurants() {
-  const data = await apiFetch('/restaurants');
-  return data.data;
+  return [...restaurants];
 }
 
 export async function fetchFoods(params = {}) {
-  const query = new URLSearchParams(params).toString();
-  const path = query ? `/foods?${query}` : '/foods';
-  const data = await apiFetch(path);
-  return data.data;
+  const { category, restaurant } = params;
+  let result = [...foods];
+
+  if (category) {
+    result = result.filter((f) => f.category_slug === category);
+  }
+
+  if (restaurant) {
+    result = result.filter(
+      (f) =>
+        String(f.restaurant_id) === String(restaurant) ||
+        f.restaurant_name.toLowerCase().replace(/\s+/g, '-') === restaurant
+    );
+  }
+
+  return result;
 }
 
-// ─── Auth routes ────────────────────────────────────────────────
+// ─── Auth routes ────────────────────────────────────────────
 
 export async function login(email, password) {
-  const data = await apiFetch('/login', {
-    method: 'POST',
-    body: JSON.stringify({ email, password }),
-  });
-  if (data.token) {
-    await saveToken(data.token);
+  // Dummy login — accepts any non-empty email/password.
+  if (!email || !password) {
+    return { success: false, message: 'Email and password are required.' };
   }
-  return data;
+
+  // Check against dummy user credentials
+  if (email === dummyUser.email && password === dummyUser.password) {
+    await saveToken(dummyToken);
+    return {
+      success: true,
+      message: 'Login successful.',
+      token: dummyToken,
+      user: {
+        id: dummyUser.id,
+        name: dummyUser.name,
+        email: dummyUser.email,
+        phone: dummyUser.phone,
+      },
+    };
+  }
+
+  // Accept any credentials for demo purposes
+  await saveToken(dummyToken);
+  return {
+    success: true,
+    message: 'Login successful.',
+    token: dummyToken,
+    user: {
+      id: dummyUser.id,
+      name: dummyUser.name,
+      email: email,
+      phone: dummyUser.phone,
+    },
+  };
 }
 
 export async function signup(name, email, password, phone) {
-  const data = await apiFetch('/signup', {
-    method: 'POST',
-    body: JSON.stringify({ name, email, password, phone }),
-  });
-  if (data.token) {
-    await saveToken(data.token);
+  if (!name || !email || !password) {
+    return { success: false, message: 'Name, email, and password are required.' };
   }
-  return data;
+
+  if (password.length < 6) {
+    return { success: false, message: 'Password must be at least 6 characters.' };
+  }
+
+  // Dummy signup — always succeeds
+  await saveToken(dummyToken);
+  return {
+    success: true,
+    message: 'Account created successfully.',
+    token: dummyToken,
+    user: {
+      id: dummyUser.id,
+      name,
+      email,
+      phone: phone || null,
+    },
+  };
 }
 
 export async function logout() {
   await removeToken();
 }
 
-// ─── Profile routes ─────────────────────────────────────────────
+// ─── Profile routes ─────────────────────────────────────────
 
 export async function fetchProfile() {
-  const data = await apiFetch('/me');
-  return data.data;
+  return { ...mockProfile };
 }
 
 export async function updateProfile({ name, email, phone }) {
-  const data = await apiFetch('/me', {
-    method: 'PUT',
-    body: JSON.stringify({ name, email, phone }),
-  });
-  return data.data;
+  // Update the in-memory profile (temporary — not persisted)
+  if (name) mockProfile.name = name;
+  if (email) mockProfile.email = email;
+  if (phone) mockProfile.phone = phone;
+  return { ...mockProfile };
 }
 
-// ─── Cart routes ────────────────────────────────────────────────
+// ─── Cart routes ────────────────────────────────────────────
 
 export async function fetchCart() {
-  const data = await apiFetch('/cart');
-  return data.data;
+  return mockCartStore.getCart();
 }
 
 export async function addToCart(foodItemId, quantity = 1, specialInstructions = '') {
-  const data = await apiFetch('/cart', {
-    method: 'POST',
-    body: JSON.stringify({ food_item_id: foodItemId, quantity, special_instructions: specialInstructions }),
-  });
-  return data.data;
+  return mockCartStore.addItem(foodItemId, quantity, specialInstructions);
 }
 
 export async function removeFromCart(cartItemId) {
-  const data = await apiFetch(`/cart/${cartItemId}`, { method: 'DELETE' });
-  return data.data;
+  return mockCartStore.removeItem(cartItemId);
 }
 
-// ─── Orders routes ──────────────────────────────────────────────
+// ─── Orders routes ──────────────────────────────────────────
 
 export async function fetchOrders() {
-  const data = await apiFetch('/orders');
-  return data.data;
+  return [...mockOrders];
 }
 
 export async function fetchOrderById(id) {
-  const data = await apiFetch(`/orders/${id}`);
-  return data.data;
+  const order = mockOrders.find(
+    (o) => String(o.id) === String(id) || o.order_number === id
+  );
+  if (!order) {
+    throw new Error('Order not found.');
+  }
+  return { ...order, order_items: [...(order.order_items || [])] };
 }
 
 export async function fetchOrderTracking(id) {
-  const data = await apiFetch(`/orders/${id}/tracking`);
-  return data.data;
+  const orderId = Number(id);
+  return mockTracking.filter((t) => t.order_id === orderId);
 }
 
 export async function placeOrder({ restaurantId, addressId, paymentMethod = 'cash', specialInstructions = '' }) {
-  const data = await apiFetch('/orders', {
-    method: 'POST',
-    body: JSON.stringify({
-      restaurant_id: restaurantId,
-      address_id: addressId,
-      payment_method: paymentMethod,
-      special_instructions: specialInstructions,
-    }),
-  });
-  return data.data;
+  if (!restaurantId || !addressId) {
+    throw new Error('restaurant_id and address_id are required.');
+  }
+
+  // Get current cart
+  const cart = mockCartStore.getCart();
+  if (!cart.items || cart.items.length === 0) {
+    throw new Error('Your cart is empty.');
+  }
+
+  // Calculate totals
+  const subtotal = cart.items.reduce((sum, i) => sum + i.line_total, 0);
+  const deliveryFee = cart.items[0].delivery_fee || 0;
+  const discount = 0;
+  const tax = 0;
+  const totalAmount = subtotal + deliveryFee - discount + tax;
+
+  // Generate order number
+  const orderNumber = 'ORD-' + Date.now().toString().slice(-6);
+
+  // Build the new order
+  const newOrder = {
+    id: mockOrders.length + 1,
+    order_number: orderNumber,
+    user_id: 1,
+    restaurant_id: restaurantId,
+    address_id: addressId,
+    subtotal,
+    delivery_fee: deliveryFee,
+    discount,
+    tax,
+    total_amount: totalAmount,
+    payment_method: paymentMethod,
+    payment_status: 'pending',
+    order_status: 'pending',
+    special_instructions: specialInstructions || '',
+    placed_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    restaurant_name: cart.items[0].restaurant_name,
+    restaurant_rating: 4.8,
+    address_label: 'Home',
+    address_line1: '42, Sunrise Apartments',
+    city: 'Jaipur',
+    postal_code: '302016',
+    order_items: cart.items.map((item) => ({
+      id: item.id,
+      order_id: mockOrders.length + 1,
+      food_item_id: item.food_item_id,
+      food_name: item.food_name,
+      quantity: item.quantity,
+      unit_price: item.effective_price,
+      total_price: item.line_total,
+      special_instructions: item.special_instructions || '',
+    })),
+  };
+
+  // Add to orders array
+  mockOrders.push(newOrder);
+
+  // Clear the cart
+  mockCartStore.clear();
+
+  return { ...newOrder, order_items: [...newOrder.order_items] };
 }
 
-// ─── Addresses routes ───────────────────────────────────────────
+// ─── Addresses routes ───────────────────────────────────────
 
 export async function fetchAddresses() {
-  const data = await apiFetch('/addresses');
-  return data.data;
+  return [...addresses];
 }
 
-// ─── Favourites routes ──────────────────────────────────────────
+// ─── Favourites routes ──────────────────────────────────────
 
 export async function fetchFavourites() {
-  const data = await apiFetch('/favourites');
-  return data.data;
+  return [...favourites];
 }
 
-// ─── Payments routes ────────────────────────────────────────────
+// ─── Payments routes ────────────────────────────────────────
 
 export async function fetchPayments() {
-  const data = await apiFetch('/payments');
-  return data.data;
+  return [...payments];
 }
 
-// ─── Notifications routes ───────────────────────────────────────
+// ─── Notifications routes ───────────────────────────────────
 
 export async function fetchNotifications() {
-  const data = await apiFetch('/notifications');
-  return data.data;
+  return [...notifications];
 }
 
-// ─── Config routes ──────────────────────────────────────────────
+// ─── Config routes ──────────────────────────────────────────
 
 export async function fetchConfig() {
-  const data = await apiFetch('/config');
-  return data.data;
+  return { ...config };
 }

@@ -1,0 +1,51 @@
+/**
+ * Mock data — Payments
+ * Mirrors the shape returned by GET /api/payments
+ */
+export const payments = [
+  {
+    id: 1,
+    order_id: 1,
+    user_id: 1,
+    transaction_id: 'txn_001',
+    payment_method: 'cash',
+    amount: 590,
+    status: 'paid',
+    provider: null,
+    paid_at: '2025-03-01T19:15:00.000Z',
+    created_at: '2025-03-01T18:30:00.000Z',
+    updated_at: '2025-03-01T19:15:00.000Z',
+    order_number: 'ORD-123456',
+    order_status: 'delivered',
+  },
+  {
+    id: 2,
+    order_id: 2,
+    user_id: 1,
+    transaction_id: 'txn_002',
+    payment_method: 'upi',
+    amount: 610,
+    status: 'paid',
+    provider: 'PhonePay',
+    paid_at: '2025-03-05T12:00:00.000Z',
+    created_at: '2025-03-05T12:00:00.000Z',
+    updated_at: '2025-03-05T12:00:00.000Z',
+    order_number: 'ORD-234567',
+    order_status: 'out_for_delivery',
+  },
+  {
+    id: 3,
+    order_id: 3,
+    user_id: 1,
+    transaction_id: 'txn_003',
+    payment_method: 'card',
+    amount: 485,
+    status: 'paid',
+    provider: 'Razorpay',
+    paid_at: '2025-03-07T19:45:00.000Z',
+    created_at: '2025-03-07T19:45:00.000Z',
+    updated_at: '2025-03-07T19:45:00.000Z',
+    order_number: 'ORD-345678',
+    order_status: 'preparing',
+  },
+];
