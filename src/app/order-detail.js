@@ -1,13 +1,13 @@
-import { View, StyleSheet, ActivityIndicator } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useState, useEffect } from 'react';
-import { Screen } from '../components/savor/Screen';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { PageHeader } from '../components/savor/PageHeader';
-import { SerifText, SansText } from '../components/savor/SerifText';
 import { SavorButton } from '../components/savor/SavorButton';
+import { Screen } from '../components/savor/Screen';
+import { SansText, SerifText } from '../components/savor/SerifText';
 import { SavorColors, SavorRadius, SavorShadow } from '../constants/savorTheme';
-import { fetchOrderById } from '../services/api';
 import { showAlert } from '../services/alertHelper';
+import { addToCart, fetchOrderById } from '../services/api';
 
 export default function OrderDetail() {
   const router = useRouter();
@@ -30,6 +30,20 @@ export default function OrderDetail() {
     })();
   }, [id]);
 
+  const handleReorder = async () => {
+    if (!order || !order.order_items) return;
+    try {
+      for (const item of order.order_items) {
+        await addToCart(item.food_item_id, item.quantity);
+      }
+      showAlert('Success', 'All items added to your cart!', [
+        { text: 'OK', onPress: () => router.push('/tabs/cart') },
+      ]);
+    } catch (err) {
+      showAlert('Error', err.message || 'Failed to reorder');
+    }
+  };
+
   if (loading) {
     return (
       <Screen scroll padBottom={false} contentStyle={styles.pad}>
@@ -48,7 +62,7 @@ export default function OrderDetail() {
     );
   }
 
-  const statusColor = order.order_status === 'delivered' ? '#2E7D32' : '#EF6C00';
+  const statusColor = order.order_status === 'delivered' ? SavorColors.successText : SavorColors.orange;
 
   return (
     <Screen scroll padBottom={false} contentStyle={styles.pad}>
@@ -70,11 +84,39 @@ export default function OrderDetail() {
       </SansText>
       {(order.order_items || []).map((item) => (
         <View key={item.id} style={styles.line}>
-          <SansText size={14}>{item.food_name} x{item.quantity}</SansText>
+          <View style={styles.lineInfo}>
+            <SansText size={14} weight="semi" color={SavorColors.text}>{item.food_name}</SansText>
+            <SansText size={12} color={SavorColors.textMuted}>x{item.quantity}</SansText>
+          </View>
           <SansText size={14} weight="medium">Rs {parseFloat(item.total_price).toLocaleString('en-IN')}</SansText>
         </View>
       ))}
 
+      {/* Delivery Address */}
+      <SansText size={15} weight="semi" color={SavorColors.text} style={styles.section}>
+        Delivery address
+      </SansText>
+      <View style={styles.infoCard}>
+        <SansText size={14} weight="medium" color={SavorColors.text}>{order.address_label || 'Home'}</SansText>
+        <SansText size={13} color={SavorColors.textMuted}>
+          {order.address_line1}, {order.city}
+        </SansText>
+      </View>
+
+      {/* Payment Method */}
+      <SansText size={15} weight="semi" color={SavorColors.text} style={styles.section}>
+        Payment method
+      </SansText>
+      <View style={styles.infoCard}>
+        <SansText size={14} weight="medium" color={SavorColors.text}>
+          {order.payment_method === 'upi' ? 'UPI / PhonePay' : order.payment_method === 'card' ? 'Debit Card' : 'Cash on Delivery'}
+        </SansText>
+        <SansText size={12} color={SavorColors.textMuted}>
+          {order.payment_status === 'paid' ? 'Paid' : 'Pending'}
+        </SansText>
+      </View>
+
+      {/* Cost Breakdown */}
       <View style={styles.summary}>
         <View style={styles.row}>
           <SansText>Subtotal</SansText>
@@ -85,6 +127,10 @@ export default function OrderDetail() {
           <SansText weight="medium" color={SavorColors.successText}>
             {parseFloat(order.delivery_fee) > 0 ? `Rs ${order.delivery_fee}` : 'Free'}
           </SansText>
+        </View>
+        <View style={styles.row}>
+          <SansText>Tax</SansText>
+          <SansText weight="medium">Rs {parseFloat(order.tax || 0).toLocaleString('en-IN')}</SansText>
         </View>
         <View style={[styles.row, styles.totalRow]}>
           <SansText weight="semi" color={SavorColors.text}>Total paid</SansText>
@@ -101,12 +147,12 @@ export default function OrderDetail() {
           <SavorButton
             label="Reorder"
             variant="ghost"
-            onPress={() => router.push('/restaurant')}
+            onPress={handleReorder}
             style={styles.reorder}
           />
         </>
       ) : (
-        <SavorButton label="Track order" onPress={() => router.push('/tracking')} />
+        <SavorButton label="Track order" onPress={() => router.push({ pathname: '/tracking', params: { orderId: String(order.id) } })} />
       )}
     </Screen>
   );
@@ -132,6 +178,16 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: SavorRadius.md,
     marginBottom: 8,
+    alignItems: 'center',
+  },
+  lineInfo: { flex: 1 },
+  infoCard: {
+    backgroundColor: SavorColors.card,
+    borderRadius: SavorRadius.md,
+    padding: 16,
+    marginBottom: 16,
+    gap: 4,
+    ...SavorShadow.card,
   },
   summary: {
     backgroundColor: SavorColors.backgroundInput,
@@ -141,6 +197,11 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   row: { flexDirection: 'row', justifyContent: 'space-between' },
-  totalRow: { paddingTop: 12, borderTopWidth: 1, borderTopColor: SavorColors.border },
+  totalRow: {
+    borderTopWidth: 1,
+    borderTopColor: SavorColors.border,
+    paddingTop: 12,
+    marginTop: 8,
+  },
   reorder: { marginTop: 12 },
 });

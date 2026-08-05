@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react';
-import { View, TextInput, StyleSheet } from 'react-native';
+import { StyleSheet, TextInput, View } from 'react-native';
 import { SavorColors, SavorRadius } from '../../constants/savorTheme';
 
-export function OtpInput({ length = 4, value, onChange }) {
+export function OtpInput({ length = 4, value, onChange, error }) {
   const refs = useRef([]);
   const [prevValue, setPrevValue] = useState(value);
 
@@ -37,7 +37,11 @@ export function OtpInput({ length = 4, value, onChange }) {
         <TextInput
           key={i}
           ref={(r) => { refs.current[i] = r; }}
-          style={[styles.box, d.trim() && styles.boxFilled]}
+          style={[
+            styles.box,
+            d.trim() && styles.boxFilled,
+            error && styles.boxError,
+          ]}
           value={d.trim()}
           onChangeText={(t) => handleChange(t, i)}
           keyboardType="number-pad"
@@ -64,4 +68,5 @@ const styles = StyleSheet.create({
     color: SavorColors.text,
   },
   boxFilled: { borderColor: SavorColors.orange, backgroundColor: SavorColors.card },
+  boxError: { borderColor: SavorColors.orange },
 });

@@ -6,13 +6,13 @@ export default function Onboarding1() {
   return (
     <OnboardingSlide
       step={0}
+      total={3}
       iconName="compass-outline"
       title={'Discover Local\nFlavors'}
       description="Browse hundreds of curated restaurants from the finest local chefs."
       buttonLabel="Next →"
       onNext={() => router.push('/onboarding2')}
+      onSkip={() => router.push('/login')}
     />
   );
 }
-
-

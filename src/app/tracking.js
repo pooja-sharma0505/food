@@ -1,65 +1,57 @@
-import { View, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useState, useEffect } from 'react';
-import { Screen } from '../components/savor/Screen';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Linking, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { PageHeader } from '../components/savor/PageHeader';
-import { SerifText, SansText } from '../components/savor/SerifText';
 import { SavorButton } from '../components/savor/SavorButton';
+import { Screen } from '../components/savor/Screen';
+import { SansText, SerifText } from '../components/savor/SerifText';
 import { SavorColors, SavorRadius, SavorShadow } from '../constants/savorTheme';
-import { fetchOrderById, fetchOrderTracking } from '../services/api';
 import { showAlert } from '../services/alertHelper';
+import { fetchOrderById } from '../services/api';
 
-const ALL_STEPS = [
-  { label: 'Order Confirmed', key: 'confirmed' },
-  { label: 'Preparing Your Food', key: 'preparing' },
-  { label: 'Out for Delivery', key: 'out_for_delivery' },
-  { label: 'Delivered', key: 'delivered' },
+const STEPS = [
+  { key: 'pending', label: 'Order placed', icon: 'cart' },
+  { key: 'confirmed', label: 'Confirmed', icon: 'checkmark-circle' },
+  { key: 'preparing', label: 'Preparing', icon: 'restaurant' },
+  { key: 'out_for_delivery', label: 'Out for delivery', icon: 'bicycle' },
+  { key: 'delivered', label: 'Delivered', icon: 'home' },
 ];
-
-const STATUS_STEP_INDEX = {
-  pending: 0,
-  confirmed: 0,
-  preparing: 1,
-  out_for_delivery: 2,
-  delivered: 3,
-  cancelled: 1,
-};
 
 export default function Tracking() {
   const router = useRouter();
   const { orderId } = useLocalSearchParams();
   const [order, setOrder] = useState(null);
-  const [tracking, setTracking] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!orderId) {
-      showAlert('Error', 'No order ID provided.');
-      router.back();
-      return;
-    }
+    if (!orderId) return;
     (async () => {
       try {
-        const [orderData, trackingData] = await Promise.all([
-          fetchOrderById(orderId),
-          fetchOrderTracking(orderId),
-        ]);
-        setOrder(orderData);
-        setTracking(trackingData);
+        const data = await fetchOrderById(orderId);
+        setOrder(data);
       } catch (err) {
-        console.error('Failed to load tracking:', err.message);
-        showAlert('Error', err.message || 'Failed to load tracking data');
+        console.error('Failed to load order:', err.message);
+        showAlert('Error', err.message || 'Failed to load order');
       } finally {
         setLoading(false);
       }
     })();
   }, [orderId]);
 
+  const handleCall = () => {
+    // In a real app, this would use the restaurant's phone number
+    Linking.openURL('tel:+919876543210');
+  };
+
+  const handleMessage = () => {
+    showAlert('Message', 'Contact your delivery partner via the app chat.', [{ text: 'OK' }]);
+  };
+
   if (loading) {
     return (
       <Screen scroll padBottom={false} contentStyle={styles.pad}>
-        <PageHeader title="Tracking Order" />
+        <PageHeader title="Track Order" />
         <ActivityIndicator size="large" color={SavorColors.orange} style={{ marginTop: 40 }} />
       </Screen>
     );
@@ -68,153 +60,157 @@ export default function Tracking() {
   if (!order) {
     return (
       <Screen scroll padBottom={false} contentStyle={styles.pad}>
-        <PageHeader title="Tracking Order" />
+        <PageHeader title="Track Order" />
         <SansText>Order not found.</SansText>
       </Screen>
     );
   }
 
-  const activeStepIndex = STATUS_STEP_INDEX[order.order_status] ?? 0;
-  const steps = ALL_STEPS.map((step, idx) => {
-    if (idx < activeStepIndex) return { ...step, status: 'done' };
-    if (idx === activeStepIndex) return { ...step, status: 'active' };
-    return { ...step, status: 'pending' };
-  });
-
-  const latestTracking = tracking.length > 0 ? tracking[tracking.length - 1] : null;
-  const etaText = latestTracking
-    ? `${latestTracking.message} · ${new Date(latestTracking.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-    : 'Est. arrival: 30-40 min';
+  const currentStatus = order.order_status || 'pending';
+  const currentStepIndex = STEPS.findIndex((s) => s.key === currentStatus);
+  const activeStep = currentStepIndex === -1 ? 0 : currentStepIndex;
 
   return (
     <Screen scroll padBottom={false} contentStyle={styles.pad}>
-      <PageHeader title="Tracking Order" />
-      <SansText size={14} style={styles.sub}>
-        {etaText} · #{order.order_number}
+      <PageHeader title="Track Order" />
+
+      <SerifText size={24} style={styles.center}>#{order.order_number}</SerifText>
+      <SansText size={14} style={styles.center} color={SavorColors.textMuted}>
+        {order.restaurant_name}
       </SansText>
 
-      <View style={styles.map}>
-        <View style={styles.mapLine} />
-        <View style={styles.mapPin}>
-          <Ionicons name="location" size={28} color={SavorColors.orange} />
-        </View>
+      {/* Status Timeline */}
+      <View style={styles.timeline}>
+        {STEPS.map((step, index) => {
+          const isActive = index <= activeStep;
+          const isCurrent = index === activeStep;
+          return (
+            <View key={step.key} style={styles.step}>
+              <View style={styles.stepLeft}>
+                <View style={[styles.stepCircle, isActive && styles.stepCircleActive, isCurrent && styles.stepCircleCurrent]}>
+                  <Ionicons
+                    name={step.icon}
+                    size={18}
+                    color={isActive ? '#fff' : SavorColors.textLight}
+                  />
+                </View>
+                {index < STEPS.length - 1 ? (
+                  <View style={[styles.stepLine, isActive && styles.stepLineActive]} />
+                ) : null}
+              </View>
+              <View style={styles.stepInfo}>
+                <SansText size={14} weight={isCurrent ? 'semi' : 'regular'} color={isActive ? SavorColors.text : SavorColors.textLight}>
+                  {step.label}
+                </SansText>
+                <SansText size={12} color={SavorColors.textLight}>
+                  {isCurrent ? 'In progress' : isActive ? 'Completed' : 'Pending'}
+                </SansText>
+              </View>
+            </View>
+          );
+        })}
       </View>
 
-      {steps.map((step) => (
-        <View key={step.label} style={styles.step}>
-          <View
-            style={[
-              styles.dot,
-              step.status === 'done' && styles.dotDone,
-              step.status === 'active' && styles.dotActive,
-            ]}
-          >
-            {step.status === 'done' ? <Ionicons name="checkmark" size={12} color="#fff" /> : null}
-          </View>
-          <View style={styles.stepBody}>
-            <SansText size={15} weight="semi" color={SavorColors.text}>{step.label}</SansText>
-            {step.status === 'active' && latestTracking ? (
-              <SansText size={13}>{latestTracking.message}</SansText>
-            ) : null}
-          </View>
-        </View>
-      ))}
+      {/* Estimated Delivery */}
+      <View style={styles.etaCard}>
+        <SansText size={13} color={SavorColors.textMuted}>Estimated delivery</SansText>
+        <SerifText size={28} color={SavorColors.orange}>7:45 PM</SerifText>
+        <SansText size={13} color={SavorColors.textMuted}>~25 min remaining</SansText>
+      </View>
 
-      {order.order_status === 'out_for_delivery' ? (
-        <View style={styles.driver}>
-          <View style={styles.driverAvatar}>
-            <SansText color="#fff" weight="bold">
-              {order.restaurant_name?.[0] || 'D'}
-            </SansText>
-          </View>
-          <View style={{ flex: 1 }}>
-            <SansText size={15} weight="semi" color={SavorColors.text}>
-              {order.restaurant_name || 'Your order'}
-            </SansText>
-            <SansText size={13}>⭐ {order.restaurant_rating || '4.8'} restaurant</SansText>
-          </View>
-          <TouchableOpacity style={styles.call}>
-            <Ionicons name="call" size={20} color="#fff" />
-          </TouchableOpacity>
-        </View>
+      {/* Action Buttons */}
+      <View style={styles.actions}>
+        <TouchableOpacity style={styles.actionBtn} onPress={handleCall}>
+          <Ionicons name="call" size={20} color={SavorColors.orange} />
+          <SansText size={14} color={SavorColors.orange} weight="medium">Call restaurant</SansText>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.actionBtn} onPress={handleMessage}>
+          <Ionicons name="chatbubble" size={20} color={SavorColors.orange} />
+          <SansText size={14} color={SavorColors.orange} weight="medium">Message</SansText>
+        </TouchableOpacity>
+      </View>
+
+      {order.order_status === 'delivered' ? (
+        <SavorButton
+          label="Rate your order"
+          onPress={() => router.push({ pathname: '/review', params: { orderId: String(order.id) } })}
+        />
       ) : null}
-
-      <SavorButton
-        label="Rate your order"
-        onPress={() => router.push({ pathname: '/review', params: { orderId: String(order.id) } })}
-        style={styles.btn}
-      />
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   pad: { paddingBottom: 40 },
-  sub: { marginTop: 6, marginBottom: 20 },
-  map: {
-    height: 140,
-    backgroundColor: '#D4EDDA',
-    borderRadius: SavorRadius.lg,
+  center: { textAlign: 'center', marginTop: 4 },
+  timeline: {
+    marginVertical: 24,
+    paddingLeft: 4,
+  },
+  step: {
+    flexDirection: 'row',
+    marginBottom: 16,
+  },
+  stepLeft: {
+    alignItems: 'center',
+    marginRight: 14,
+  },
+  stepCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: SavorColors.backgroundInput,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 24,
-    overflow: 'hidden',
-  },
-  mapLine: {
-    position: 'absolute',
-    width: '70%',
-    height: 4,
-    backgroundColor: SavorColors.orange,
-    borderRadius: 2,
-  },
-  mapPin: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: SavorColors.card,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...SavorShadow.card,
-  },
-  step: { flexDirection: 'row', marginBottom: 18 },
-  dot: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
     borderWidth: 2,
     borderColor: SavorColors.border,
-    marginRight: 14,
-    marginTop: 2,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
-  dotDone: { backgroundColor: SavorColors.orange, borderColor: SavorColors.orange },
-  dotActive: { borderColor: SavorColors.orange, borderWidth: 3 },
-  stepBody: { flex: 1, gap: 2 },
-  driver: {
+  stepCircleActive: {
+    backgroundColor: SavorColors.orange,
+    borderColor: SavorColors.orange,
+  },
+  stepCircleCurrent: {
+    backgroundColor: SavorColors.orange,
+    shadowColor: SavorColors.orange,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  stepLine: {
+    width: 2,
+    height: 32,
+    backgroundColor: SavorColors.border,
+    marginTop: 4,
+  },
+  stepLineActive: {
+    backgroundColor: SavorColors.orange,
+  },
+  stepInfo: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  etaCard: {
+    backgroundColor: SavorColors.card,
+    borderRadius: SavorRadius.lg,
+    padding: 20,
+    alignItems: 'center',
+    marginBottom: 24,
+    ...SavorShadow.card,
+  },
+  actions: {
+    flexDirection: 'row',
+    gap: 16,
+    justifyContent: 'center',
+    marginBottom: 24,
+  },
+  actionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    backgroundColor: SavorColors.peach,
-    padding: 16,
-    borderRadius: SavorRadius.lg,
-    marginVertical: 24,
+    gap: 6,
+    backgroundColor: SavorColors.orangeSoft,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: SavorRadius.pill,
   },
-  driverAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: SavorColors.orange,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  call: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: SavorColors.black,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  btn: { marginTop: 4 },
 });

@@ -1,12 +1,14 @@
-import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { SerifText, SansText } from './SerifText';
-import { SavorButton } from './SavorButton';
-import { DotIndicator } from './DotIndicator';
 import { SavorColors, SavorRadius } from '../../constants/savorTheme';
+import { DotIndicator } from './DotIndicator';
+import { SavorButton } from './SavorButton';
+import { SansText, SerifText } from './SerifText';
 
-export function OnboardingSlide({ iconName, title, description, step, total, buttonLabel, onNext }) {
+export function OnboardingSlide({ iconName, title, description, step, total = 3, buttonLabel, onNext, onSkip }) {
+  const isLast = step === total - 1;
+
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.inner}>
@@ -26,7 +28,21 @@ export function OnboardingSlide({ iconName, title, description, step, total, but
           <DotIndicator total={total} active={step} />
         </View>
 
-        <SavorButton label={buttonLabel} onPress={onNext} />
+        <View style={styles.bottomRow}>
+          {!isLast ? (
+            <TouchableOpacity onPress={onSkip} hitSlop={12}>
+              <SansText size={14} color={SavorColors.textMuted} weight="medium">
+                Skip
+              </SansText>
+            </TouchableOpacity>
+          ) : <View style={styles.skipPlaceholder} />}
+
+          <SavorButton
+            label={buttonLabel}
+            onPress={onNext}
+            style={styles.button}
+          />
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -50,8 +66,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  image: { width: 140, height: 140 },
   title: { textAlign: 'center', marginBottom: 12 },
   desc: { textAlign: 'center', lineHeight: 24, marginBottom: 28, paddingHorizontal: 8 },
   dots: { marginBottom: 28 },
+  bottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    gap: 16,
+  },
+  skipPlaceholder: { width: 60 },
+  button: { flex: 1, minWidth: 140 },
 });

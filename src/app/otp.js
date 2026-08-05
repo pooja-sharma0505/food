@@ -1,16 +1,87 @@
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { AuthCard } from '../components/savor/AuthCard';
-import { SavorLogo } from '../components/savor/SavorLogo';
-import { SerifText, SansText } from '../components/savor/SerifText';
 import { OtpInput } from '../components/savor/OtpInput';
 import { SavorButton } from '../components/savor/SavorButton';
+import { SavorLogo } from '../components/savor/SavorLogo';
+import { SansText, SerifText } from '../components/savor/SerifText';
 import { SavorColors } from '../constants/savorTheme';
+
+const CORRECT_CODE = '8321';
+const RESEND_COOLDOWN = 30;
 
 export default function OTP() {
   const router = useRouter();
-  const [code, setCode] = useState('832');
+  const [code, setCode] = useState('');
+  const [resendCountdown, setResendCountdown] = useState(0);
+  const [error, setError] = useState('');
+  const [verifying, setVerifying] = useState(false);
+  const intervalRef = useRef(null);
+
+  // Start countdown on mount
+  useEffect(() => {
+    startCountdown();
+    return () => clearInterval(intervalRef.current);
+  }, []);
+
+  // Auto-submit when code is complete
+  useEffect(() => {
+    if (code.length === 4) {
+      // Small delay to let user see the last digit
+      const timer = setTimeout(() => {
+        handleVerify(code);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [code]);
+
+  const startCountdown = () => {
+    setResendCountdown(RESEND_COOLDOWN);
+    clearInterval(intervalRef.current);
+    intervalRef.current = setInterval(() => {
+      setResendCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(intervalRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const handleVerify = async (enteredCode) => {
+    if (enteredCode !== CORRECT_CODE) {
+      setError('Incorrect code. Please try again.');
+      setCode('');
+      // Focus first input after a brief delay
+      setTimeout(() => {
+        // The OtpInput component will reset focus internally
+      }, 100);
+      return;
+    }
+
+    setError('');
+    setVerifying(true);
+    // Simulate API call
+    setTimeout(() => {
+      setVerifying(false);
+      router.replace('/tabs/home');
+    }, 800);
+  };
+
+  const handleResend = () => {
+    if (resendCountdown > 0) return;
+    setCode('');
+    setError('');
+    startCountdown();
+  };
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
   return (
     <AuthCard>
@@ -24,13 +95,31 @@ export default function OTP() {
         Enter the 4-digit code we sent to your phone
       </SansText>
 
-      <OtpInput value={code} onChange={setCode} />
+      <OtpInput value={code} onChange={setCode} error={!!error} />
 
-      <SavorButton label="Verify & Sign in" onPress={() => router.replace('/tabs/home')} />
+      {error ? (
+        <SansText size={13} color={SavorColors.orange} style={styles.errorText}>
+          {error}
+        </SansText>
+      ) : null}
 
-      <SansText size={14} color={SavorColors.orange} weight="semi" style={styles.resend}>
-        Resend in 0:24
-      </SansText>
+      <SavorButton
+        label={verifying ? 'Verifying...' : 'Verify & Sign in'}
+        onPress={() => handleVerify(code)}
+        disabled={verifying || code.length < 4}
+        loading={verifying}
+      />
+
+      <TouchableOpacity onPress={handleResend} disabled={resendCountdown > 0} activeOpacity={0.7}>
+        <SansText
+          size={14}
+          color={resendCountdown > 0 ? SavorColors.textLight : SavorColors.orange}
+          weight="semi"
+          style={styles.resend}
+        >
+          {resendCountdown > 0 ? `Resend in ${formatTime(resendCountdown)}` : 'Resend code'}
+        </SansText>
+      </TouchableOpacity>
 
       <TouchableOpacity style={styles.alt} onPress={() => router.back()}>
         <SansText weight="medium">Use email instead</SansText>
@@ -43,6 +132,7 @@ const styles = StyleSheet.create({
   logoWrap: { alignSelf: 'center', marginBottom: 20 },
   center: { textAlign: 'center', marginBottom: 4 },
   hint: { marginBottom: 24, marginTop: 8 },
+  errorText: { textAlign: 'center', marginBottom: 8 },
   resend: { textAlign: 'center', marginTop: 16 },
   alt: {
     marginTop: 16,

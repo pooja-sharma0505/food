@@ -1,35 +1,39 @@
-import { View, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { Screen } from '../../components/savor/Screen';
-import { SerifText, SansText } from '../../components/savor/SerifText';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { ActivityIndicator, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { SavorButton } from '../../components/savor/SavorButton';
+import { Screen } from '../../components/savor/Screen';
+import { SansText, SerifText } from '../../components/savor/SerifText';
 import { SavorColors, SavorRadius, SavorShadow } from '../../constants/savorTheme';
-import { fetchCart, addToCart, removeFromCart } from '../../services/api';
 import { showAlert } from '../../services/alertHelper';
+import { addToCart, fetchCart, removeFromCart } from '../../services/api';
 
 export default function Cart() {
   const router = useRouter();
   const [cart, setCart] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [promoCode, setPromoCode] = useState('');
+  const [promoApplied, setPromoApplied] = useState(false);
+  const [promoError, setPromoError] = useState('');
+  const [expandedNotes, setExpandedNotes] = useState({});
+  const [notes, setNotes] = useState({});
 
-  const loadCart = async () => {
-    try {
-      const data = await fetchCart();
-      setCart(data);
-    } catch (err) {
-      console.error('Failed to load cart:', err.message);
-      showAlert('Error', err.message || 'Failed to load cart');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const loadCart = useCallback(() => {
+    (async () => {
+      try {
+        const data = await fetchCart();
+        setCart(data);
+      } catch (err) {
+        console.error('Failed to load cart:', err.message);
+        showAlert('Error', err.message || 'Failed to load cart');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
-  useEffect(() => {
-    const unsubscribe = router.addListener('focus', loadCart);
-    return unsubscribe;
-  }, [router]);
+  useFocusEffect(loadCart);
 
   // Update quantity: delta > 0 adds, delta < 0 removes
   const handleUpdate = async (id, delta) => {
@@ -66,8 +70,32 @@ export default function Cart() {
     }
   };
 
+  const handleApplyPromo = () => {
+    if (!promoCode.trim()) {
+      setPromoError('Please enter a promo code');
+      return;
+    }
+    if (promoCode.toUpperCase() === 'SAVOR50') {
+      setPromoApplied(true);
+      setPromoError('');
+    } else {
+      setPromoError('Invalid promo code');
+    }
+  };
+
+  const toggleNotes = (itemId) => {
+    setExpandedNotes((prev) => ({ ...prev, [itemId]: !prev[itemId] }));
+  };
+
+  const updateNote = (itemId, text) => {
+    setNotes((prev) => ({ ...prev, [itemId]: text }));
+  };
+
   const items = cart?.items || [];
-  const total = cart?.total || 0;
+  const subtotal = cart?.total || 0;
+  const discount = promoApplied ? subtotal * 0.5 : 0;
+  const deliveryFee = cart?.items?.[0]?.delivery_fee ? parseFloat(cart.items[0].delivery_fee) : 0;
+  const total = subtotal - discount + deliveryFee;
 
   if (loading) {
     return (
@@ -88,47 +116,116 @@ export default function Cart() {
         <View style={styles.empty}>
           <Ionicons name="cart-outline" size={64} color={SavorColors.textLight} />
           <SansText size={15} style={styles.emptyText}>Your cart is empty. Add items from a restaurant!</SansText>
+          <SavorButton label="Browse Restaurants" onPress={() => router.push('/tabs/explore')} variant="ghost" />
         </View>
       ) : (
-        items.map((item) => (
-          <View key={item.id} style={styles.card}>
-            <View style={styles.thumb}>
-              <SansText size={24}>{item.category_icon || '🍽️'}</SansText>
+        <>
+          {items.map((item) => (
+            <View key={item.id} style={styles.card}>
+              <View style={styles.thumb}>
+                <SansText size={24}>{item.category_icon || '🍽️'}</SansText>
+              </View>
+              <View style={styles.info}>
+                <SansText size={15} weight="semi" color={SavorColors.text}>{item.food_name}</SansText>
+                <SansText size={12}>{item.restaurant_name}</SansText>
+                <SansText size={14} color={SavorColors.orange} weight="semi">
+                  Rs {item.effective_price * item.quantity}
+                </SansText>
+
+                {/* Special Instructions */}
+                <TouchableOpacity
+                  onPress={() => toggleNotes(item.id)}
+                  style={styles.noteToggle}
+                  activeOpacity={0.7}
+                >
+                  <SansText size={12} color={SavorColors.textMuted} weight="medium">
+                    {expandedNotes[item.id] ? 'Hide note' : 'Add a note'}
+                  </SansText>
+                </TouchableOpacity>
+                {expandedNotes[item.id] ? (
+                  <TextInput
+                    style={styles.noteInput}
+                    placeholder="e.g. no onions, extra spicy"
+                    placeholderTextColor={SavorColors.textLight}
+                    value={notes[item.id] || ''}
+                    onChangeText={(text) => updateNote(item.id, text)}
+                    multiline
+                    maxLength={100}
+                  />
+                ) : null}
+              </View>
+              <View style={styles.qty}>
+                <TouchableOpacity onPress={() => handleUpdate(item.id, -1)}>
+                  <Ionicons name="remove" size={18} />
+                </TouchableOpacity>
+                <SansText weight="semi">{item.quantity}</SansText>
+                <TouchableOpacity onPress={() => handleUpdate(item.id, 1)}>
+                  <Ionicons name="add" size={18} color={SavorColors.orange} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => handleRemove(item.id)} style={styles.removeBtn}>
+                  <Ionicons name="trash" size={16} color={SavorColors.textMuted} />
+                </TouchableOpacity>
+              </View>
             </View>
-            <View style={styles.info}>
-              <SansText size={15} weight="semi" color={SavorColors.text}>{item.food_name}</SansText>
-              <SansText size={12}>{item.restaurant_name}</SansText>
-              <SansText size={14} color={SavorColors.orange} weight="semi">
-                Rs {item.effective_price * item.quantity}
+          ))}
+
+          {/* Promo Code */}
+          <View style={styles.promoCard}>
+            <TextInput
+              style={styles.promoInput}
+              placeholder="Enter promo code"
+              placeholderTextColor={SavorColors.textLight}
+              value={promoCode}
+              onChangeText={setPromoCode}
+              autoCapitalize="characters"
+            />
+            <TouchableOpacity
+              style={[styles.promoBtn, promoApplied && styles.promoBtnApplied]}
+              onPress={handleApplyPromo}
+              activeOpacity={0.8}
+            >
+              <SansText size={13} weight="semi" color={SavorColors.white}>
+                {promoApplied ? 'Applied!' : 'Apply'}
+              </SansText>
+            </TouchableOpacity>
+          </View>
+          {promoError ? (
+            <SansText size={12} color={SavorColors.orange} style={styles.promoError}>
+              {promoError}
+            </SansText>
+          ) : null}
+
+          {/* Order Summary */}
+          <View style={styles.summary}>
+            <View style={styles.summaryRow}>
+              <SansText size={14} color={SavorColors.textMuted}>Subtotal</SansText>
+              <SansText size={14}>Rs {subtotal.toLocaleString('en-IN')}</SansText>
+            </View>
+            <View style={styles.summaryRow}>
+              <SansText size={14} color={SavorColors.textMuted}>Delivery fee</SansText>
+              <SansText size={14} color={SavorColors.successText}>
+                {deliveryFee > 0 ? `Rs ${deliveryFee}` : 'Free'}
               </SansText>
             </View>
-            <View style={styles.qty}>
-              <TouchableOpacity onPress={() => handleUpdate(item.id, -1)}>
-                <Ionicons name="remove" size={18} />
-              </TouchableOpacity>
-              <SansText weight="semi">{item.quantity}</SansText>
-              <TouchableOpacity onPress={() => handleUpdate(item.id, 1)}>
-                <Ionicons name="add" size={18} color={SavorColors.orange} />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => handleRemove(item.id)} style={styles.removeBtn}>
-                <Ionicons name="trash" size={16} color={SavorColors.textMuted} />
-              </TouchableOpacity>
+            {promoApplied ? (
+              <View style={styles.summaryRow}>
+                <SansText size={14} color={SavorColors.successText}>Discount (SAVOR50)</SansText>
+                <SansText size={14} color={SavorColors.successText}>-Rs {discount.toLocaleString('en-IN')}</SansText>
+              </View>
+            ) : null}
+            <View style={[styles.summaryRow, styles.totalRow]}>
+              <SansText size={16} weight="semi" color={SavorColors.text}>Total</SansText>
+              <SerifText size={24} color={SavorColors.orange}>Rs {total.toLocaleString('en-IN')}</SerifText>
             </View>
           </View>
-        ))
+
+          <SavorButton
+            label="Proceed to Checkout"
+            variant="dark"
+            onPress={() => router.push('/checkout')}
+          />
+        </>
       )}
-
-      <View style={styles.totalRow}>
-        <SansText size={14} color={SavorColors.textMuted}>Total</SansText>
-        <SerifText size={32}>Rs {total.toLocaleString('en-IN')}</SerifText>
-      </View>
-
-      <SavorButton
-        label="Proceed to Checkout"
-        variant="dark"
-        onPress={() => router.push('/checkout')}
-        disabled={items.length === 0}
-      />
     </Screen>
   );
 }
@@ -155,6 +252,20 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   info: { flex: 1, gap: 2 },
+  noteToggle: {
+    marginTop: 6,
+  },
+  noteInput: {
+    backgroundColor: SavorColors.backgroundInput,
+    borderRadius: SavorRadius.md,
+    padding: 10,
+    fontFamily: 'DMSans_400Regular',
+    fontSize: 13,
+    color: SavorColors.text,
+    marginTop: 6,
+    textAlignVertical: 'top',
+    minHeight: 60,
+  },
   qty: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -168,4 +279,45 @@ const styles = StyleSheet.create({
   totalRow: { marginVertical: 20 },
   empty: { alignItems: 'center', paddingTop: 60, gap: 12 },
   emptyText: { textAlign: 'center', paddingHorizontal: 40 },
+  // Promo
+  promoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: SavorColors.card,
+    borderRadius: SavorRadius.md,
+    padding: 12,
+    marginBottom: 8,
+    gap: 8,
+    ...SavorShadow.card,
+  },
+  promoInput: {
+    flex: 1,
+    fontFamily: 'DMSans_400Regular',
+    fontSize: 14,
+    color: SavorColors.text,
+    padding: 0,
+  },
+  promoBtn: {
+    backgroundColor: SavorColors.orange,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: SavorRadius.pill,
+  },
+  promoBtnApplied: { backgroundColor: SavorColors.successText },
+  promoError: { marginBottom: 8, marginLeft: 4 },
+  // Summary
+  summary: {
+    backgroundColor: SavorColors.backgroundInput,
+    borderRadius: SavorRadius.lg,
+    padding: 18,
+    marginVertical: 20,
+    gap: 10,
+  },
+  summaryRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  totalRow: {
+    borderTopWidth: 1,
+    borderTopColor: SavorColors.border,
+    paddingTop: 12,
+    marginTop: 8,
+  },
 });

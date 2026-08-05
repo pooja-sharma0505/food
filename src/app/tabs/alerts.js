@@ -1,34 +1,44 @@
-import { View, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useState, useEffect } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Screen } from '../../components/savor/Screen';
-import { SerifText, SansText } from '../../components/savor/SerifText';
+import { SansText, SerifText } from '../../components/savor/SerifText';
 import { SavorColors, SavorRadius, SavorShadow } from '../../constants/savorTheme';
-import { fetchNotifications } from '../../services/api';
 import { showAlert } from '../../services/alertHelper';
+import { fetchNotifications } from '../../services/api';
+
+// Map notification type to icon color
+const TYPE_COLORS = {
+  order: SavorColors.orange,
+  promo: '#D63384', // pink
+  system: SavorColors.textMuted,
+};
 
 export default function Alerts() {
   const router = useRouter();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const unsubscribe = router.addListener('focus', loadNotifications);
-    return unsubscribe;
-  }, [router]);
+  const loadNotifications = useCallback(() => {
+    (async () => {
+      setLoading(true);
+      try {
+        const data = await fetchNotifications();
+        setNotifications(data);
+      } catch (err) {
+        console.error('Failed to load notifications:', err.message);
+        showAlert('Error', err.message || 'Failed to load notifications');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
-  async function loadNotifications() {
-    setLoading(true);
-    try {
-      const data = await fetchNotifications();
-      setNotifications(data);
-    } catch (err) {
-      console.error('Failed to load notifications:', err.message);
-      showAlert('Error', err.message || 'Failed to load notifications');
-    } finally {
-      setLoading(false);
-    }
-  }
+  useFocusEffect(loadNotifications);
+
+  // Split notifications into Today and Earlier
+  const today = notifications.filter((n) => n.time.includes('hour') || n.time.includes('min') || n.time.includes('now'));
+  const earlier = notifications.filter((n) => !today.includes(n));
 
   if (loading) {
     return (
@@ -38,6 +48,42 @@ export default function Alerts() {
       </Screen>
     );
   }
+
+  const renderSection = (title, items) => (
+    <View style={styles.section}>
+      <SansText size={12} color={SavorColors.textLight} weight="medium" style={styles.sectionHeader}>
+        {title}
+      </SansText>
+      {items.map((n) => {
+        const typeColor = TYPE_COLORS[n.icon?.[0] === '✅' ? 'order' : n.icon?.[0] === '🛵' ? 'order' : n.icon?.[0] === '👨' ? 'order' : 'system'];
+        return (
+          <TouchableOpacity
+            key={n.id}
+            style={[styles.item, n.unread && styles.itemUnread]}
+            activeOpacity={0.9}
+            onPress={() => {
+              if (n.order_status === 'out_for_delivery' || n.order_status === 'preparing' || n.order_status === 'pending') {
+                router.push({ pathname: '/tracking', params: { orderId: String(n.order_id) } });
+              }
+              if (n.order_status === 'delivered') {
+                router.push({ pathname: '/review', params: { orderId: String(n.order_id) } });
+              }
+            }}
+          >
+            <View style={[styles.iconBox, { backgroundColor: `${typeColor}20` }]}>
+              <SansText size={22}>{n.icon}</SansText>
+            </View>
+            <View style={styles.body}>
+              <SansText size={15} weight="semi" color={SavorColors.text}>{n.title}</SansText>
+              <SansText size={13} numberOfLines={2}>{n.body}</SansText>
+              <SansText size={12} color={SavorColors.textLight}>{n.time}</SansText>
+            </View>
+            {n.unread ? <View style={styles.dot} /> : null}
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
 
   return (
     <Screen scroll padBottom contentStyle={styles.pad}>
@@ -49,31 +95,10 @@ export default function Alerts() {
           <SansText size={15} style={styles.emptyText}>No notifications yet.</SansText>
         </View>
       ) : (
-        notifications.map((n) => (
-          <TouchableOpacity
-            key={n.id}
-            style={styles.item}
-            activeOpacity={0.9}
-            onPress={() => {
-              if (n.order_status === 'out_for_delivery' || n.order_status === 'preparing' || n.order_status === 'pending') {
-                router.push({ pathname: '/tracking', params: { orderId: String(n.order_id) } });
-              }
-              if (n.order_status === 'delivered') {
-                router.push({ pathname: '/review', params: { orderId: String(n.order_id) } });
-              }
-            }}
-          >
-            <View style={styles.iconBox}>
-              <SansText size={22}>{n.icon}</SansText>
-            </View>
-            <View style={styles.body}>
-              <SansText size={15} weight="semi" color={SavorColors.text}>{n.title}</SansText>
-              <SansText size={13} numberOfLines={2}>{n.body}</SansText>
-              <SansText size={12} color={SavorColors.textLight}>{n.time}</SansText>
-            </View>
-            {n.unread ? <View style={styles.dot} /> : null}
-          </TouchableOpacity>
-        ))
+        <>
+          {renderSection('Today', today)}
+          {earlier.length > 0 ? renderSection('Earlier', earlier) : null}
+        </>
       )}
     </Screen>
   );
@@ -82,6 +107,12 @@ export default function Alerts() {
 const styles = StyleSheet.create({
   pad: { paddingTop: 4 },
   title: { marginBottom: 20 },
+  section: { marginBottom: 24 },
+  sectionHeader: {
+    marginBottom: 10,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
   item: {
     flexDirection: 'row',
     backgroundColor: SavorColors.card,
@@ -91,11 +122,13 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     ...SavorShadow.card,
   },
+  itemUnread: {
+    backgroundColor: SavorColors.orangeSoft,
+  },
   iconBox: {
     width: 48,
     height: 48,
     borderRadius: 14,
-    backgroundColor: SavorColors.backgroundInput,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,

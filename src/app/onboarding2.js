@@ -6,11 +6,13 @@ export default function Onboarding2() {
   return (
     <OnboardingSlide
       step={1}
+      total={3}
       iconName="bicycle-outline"
       title={'Fast &\nReliable Delivery'}
       description="Track your order in real-time and get delivery in under 30 minutes."
       buttonLabel="Next →"
       onNext={() => router.push('/onboarding3')}
+      onSkip={() => router.push('/login')}
     />
   );
 }

@@ -1,91 +1,68 @@
-import { View, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Screen } from '../../components/savor/Screen';
-import { SerifText, SansText } from '../../components/savor/SerifText';
 import { SearchBar } from '../../components/savor/SearchBar';
+import { SansText, SerifText } from '../../components/savor/SerifText';
 import { SavorColors, SavorRadius, SavorShadow } from '../../constants/savorTheme';
-import { fetchCategories, fetchFoods } from '../../services/api';
+import { showAlert } from '../../services/alertHelper';
+import { fetchCategories, fetchRestaurants } from '../../services/api';
 
-// Map category slug to a background color for food cards
-const CATEGORY_BG = {
-  pizza: '#FFE8DC',
-  burger: '#FFF3E0',
-  indian: '#E8F5E9',
-  chinese: '#E3F2FD',
-  desserts: '#FCE4EC',
-  drinks: '#E0F7FA',
+const CATEGORY_EMOJI = {
+  pizza: '🍕',
+  burger: '🍔',
+  indian: '🍛',
+  chinese: '🥢',
+  sushi: '🍣',
+  dessert: '🍰',
+  drinks: '🥤',
+  salad: '🥗',
+  mexican: '🌮',
+  thai: '🌶️',
 };
 
 export default function Home() {
   const router = useRouter();
   const [search, setSearch] = useState('');
-  const [category, setCategory] = useState('pizza');
   const [categories, setCategories] = useState([]);
-  const [foods, setFoods] = useState([]);
+  const [restaurants, setRestaurants] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch categories once on mount
   useEffect(() => {
     (async () => {
       try {
-        const cats = await fetchCategories();
-        setCategories(cats);
-        if (cats.length > 0 && !category || !cats.find((c) => c.slug === category)) {
-          setCategory(cats[0].slug);
-        }
+        const [catData, restData] = await Promise.all([fetchCategories(), fetchRestaurants()]);
+        setCategories(catData);
+        setRestaurants(restData);
       } catch (err) {
-        console.error('Failed to fetch categories:', err.message);
-      }
-    })();
-  }, []);
-
-  // Fetch foods whenever the selected category changes
-  useEffect(() => {
-    if (!category) return;
-    (async () => {
-      setLoading(true);
-      try {
-        const data = await fetchFoods({ category });
-        setFoods(data);
-      } catch (err) {
-        console.error('Failed to fetch foods:', err.message);
-        setFoods([]);
+        console.error('Failed to load home data:', err.message);
+        showAlert('Error', err.message || 'Failed to load data');
       } finally {
         setLoading(false);
       }
     })();
-  }, [category]);
+  }, []);
 
-  // Map API category objects to the format the UI expects
-  const categoryChips = categories.map((c) => ({
-    id: c.slug,
-    label: c.name,
-    icon: c.icon,
-  }));
+  // Get trending restaurants (top rated)
+  const trending = restaurants
+    .filter((r) => r.is_open)
+    .sort((a, b) => b.rating - a.rating)
+    .slice(0, 5);
 
-  // Map API food objects to the format the UI expects
-  const popularDishes = foods.map((f) => ({
-    id: String(f.id),
-    name: f.name,
-    restaurant: f.restaurant_name,
-    price: `₹${f.discount_price && f.discount_price > 0 ? f.discount_price : f.price}`,
-    rating: parseFloat(f.rating),
-    emoji: f.category_icon || '🍽️',
-    bg: CATEGORY_BG[f.category_slug] || '#F5F5F5',
-    category: f.category_slug,
-  }));
+  // Get featured restaurants
+  const featured = restaurants
+    .filter((r) => r.delivery_fee === 0 || r.delivery_fee === '0')
+    .slice(0, 3);
 
   return (
     <Screen scroll padBottom contentStyle={styles.pad}>
       <View style={styles.header}>
-        <View>
-          <SansText size={13} color={SavorColors.text}>Good Evening 🌙</SansText>
-          <SerifText size={24}>What's for dinner?</SerifText>
-        </View>
-        <View style={styles.avatar}>
-          <SansText size={13} color="#fff" weight="bold">RK</SansText>
-        </View>
+        <SerifText size={32}>Savor</SerifText>
+        <TouchableOpacity onPress={() => router.push('/tabs/profile')}>
+          <View style={styles.avatar}>
+            <SansText size={16} weight="bold" color="#fff">U</SansText>
+          </View>
+        </TouchableOpacity>
       </View>
 
       <TouchableOpacity activeOpacity={1} onPress={() => router.push('/search')}>
@@ -99,62 +76,97 @@ export default function Home() {
         />
       </TouchableOpacity>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsScroll}>
-        {categoryChips.map((c) => {
-          const active = category === c.id;
-          return (
-            <TouchableOpacity
-              key={c.id}
-              style={[styles.chip, active && styles.chipActive]}
-              onPress={() => setCategory(c.id)}
-            >
-              <SansText size={14}>{c.icon}</SansText>
-              <SansText size={14} color={active ? '#fff' : SavorColors.text} weight={active ? 'semi' : 'regular'}>
-                {c.label}
-              </SansText>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
-
-      <View style={styles.banner}>
-        <View>
-          <SansText size={18} color="#fff" weight="bold">50% Off Today!</SansText>
-          <SansText size={12} color="#C9B8B0">Use code SAVOR50 at checkout</SansText>
-        </View>
-        <TouchableOpacity style={styles.claim}>
-          <SansText size={13} color="#fff" weight="semi">Claim</SansText>
-        </TouchableOpacity>
-      </View>
-
-      <SansText size={16} weight="semi" color={SavorColors.text} style={styles.section}>
-        Popular now
+      {/* Categories */}
+      <SansText size={18} weight="semi" color={SavorColors.text} style={styles.section}>
+        Categories
       </SansText>
-
       {loading ? (
-        <ActivityIndicator size="large" color={SavorColors.orange} style={{ marginTop: 20 }} />
+        <ActivityIndicator size="small" color={SavorColors.orange} />
       ) : (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.popularScroll}>
-          {popularDishes.map((dish) => (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categories}>
+          {categories.map((cat) => (
             <TouchableOpacity
-              key={dish.id}
-              style={styles.foodCard}
-              onPress={() => router.push('/restaurant')}
-              activeOpacity={0.9}
+              key={cat.id}
+              style={styles.categoryCard}
+              onPress={() => router.push({ pathname: '/tabs/explore', params: { category: cat.slug } })}
             >
-              <View style={[styles.foodImg, { backgroundColor: dish.bg }]}>
-                <SansText size={40}>{dish.emoji}</SansText>
+              <View style={[styles.categoryIcon, { backgroundColor: SavorColors.orangeSoft }]}>
+                <SansText size={28}>{CATEGORY_EMOJI[cat.slug] || '🍽️'}</SansText>
               </View>
-              <SansText size={15} weight="semi" color={SavorColors.text} numberOfLines={1}>
-                {dish.name}
-              </SansText>
-              <SansText size={12}>{dish.restaurant}</SansText>
-              <SansText size={13} color={SavorColors.orange} weight="semi">
-                {dish.price} · ⭐ {dish.rating}
+              <SansText size={13} color={SavorColors.text} weight="medium">
+                {cat.name}
               </SansText>
             </TouchableOpacity>
           ))}
         </ScrollView>
+      )}
+
+      {/* Trending */}
+      <SansText size={18} weight="semi" color={SavorColors.text} style={styles.section}>
+        Trending now
+      </SansText>
+      {loading ? (
+        <ActivityIndicator size="small" color={SavorColors.orange} />
+      ) : (
+        trending.map((r) => (
+          <TouchableOpacity
+            key={r.id}
+            style={styles.restaurantCard}
+            onPress={() => router.push({ pathname: '/restaurant', params: { id: String(r.id) } })}
+            activeOpacity={0.9}
+          >
+            <View style={[styles.restThumb, { backgroundColor: SavorColors.orangeLight }]}>
+              <SansText size={32}>{CATEGORY_EMOJI[r.cuisine?.split(',')[0]?.trim().toLowerCase()] || '🍽️'}</SansText>
+            </View>
+            <View style={styles.restInfo}>
+              <SansText size={16} weight="semi" color={SavorColors.text}>{r.name}</SansText>
+              <SansText size={13} color={SavorColors.textMuted}>
+                ⭐ {r.rating} · {r.delivery_time_min}-{r.delivery_time_max} min
+              </SansText>
+              <View style={styles.restTags}>
+                {(r.cuisine || '').split(',').slice(0, 2).map((c) => (
+                  <View key={c.trim()} style={styles.tag}>
+                    <SansText size={11} color={SavorColors.orange}>{c.trim()}</SansText>
+                  </View>
+                ))}
+              </View>
+            </View>
+          </TouchableOpacity>
+        ))
+      )}
+
+      {/* Featured */}
+      <SansText size={18} weight="semi" color={SavorColors.text} style={styles.section}>
+        Free delivery
+      </SansText>
+      {loading ? (
+        <ActivityIndicator size="small" color={SavorColors.orange} />
+      ) : (
+        featured.map((r) => (
+          <TouchableOpacity
+            key={r.id}
+            style={styles.restaurantCard}
+            onPress={() => router.push({ pathname: '/restaurant', params: { id: String(r.id) } })}
+            activeOpacity={0.9}
+          >
+            <View style={[styles.restThumb, { backgroundColor: SavorColors.orangeLight }]}>
+              <SansText size={32}>{CATEGORY_EMOJI[r.cuisine?.split(',')[0]?.trim().toLowerCase()] || '🍽️'}</SansText>
+            </View>
+            <View style={styles.restInfo}>
+              <SansText size={16} weight="semi" color={SavorColors.text}>{r.name}</SansText>
+              <SansText size={13} color={SavorColors.textMuted}>
+                ⭐ {r.rating} · {r.delivery_time_min}-{r.delivery_time_max} min
+              </SansText>
+              <View style={styles.restTags}>
+                {(r.cuisine || '').split(',').slice(0, 2).map((c) => (
+                  <View key={c.trim()} style={styles.tag}>
+                    <SansText size={11} color={SavorColors.orange}>{c.trim()}</SansText>
+                  </View>
+                ))}
+              </View>
+            </View>
+          </TouchableOpacity>
+        ))
       )}
     </Screen>
   );
@@ -162,60 +174,62 @@ export default function Home() {
 
 const styles = StyleSheet.create({
   pad: { paddingTop: 4 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: SavorColors.orange,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  search: { marginBottom: 16 },
-  chipsScroll: { marginBottom: 16, marginHorizontal: -20, paddingHorizontal: 20 },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: SavorRadius.pill,
-    borderWidth: 1,
-    borderColor: SavorColors.border,
-    marginRight: 10,
-    backgroundColor: SavorColors.card,
-  },
-  chipActive: { backgroundColor: SavorColors.orange, borderColor: SavorColors.orange },
-  banner: {
-    backgroundColor: SavorColors.black,
-    borderRadius: SavorRadius.lg,
-    padding: 20,
+  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 20,
   },
-  claim: {
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: SavorColors.orange,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: SavorRadius.pill,
-  },
-  section: { marginBottom: 14 },
-  popularScroll: { paddingRight: 40 },
-  foodCard: {
-    width: 160,
-    backgroundColor: SavorColors.card,
-    borderRadius: SavorRadius.lg,
-    padding: 12,
-    marginRight: 12,
-    ...SavorShadow.card,
-  },
-  foodImg: {
-    height: 100,
-    borderRadius: SavorRadius.md,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
+  },
+  search: { marginBottom: 20 },
+  section: { marginBottom: 12 },
+  categories: {
+    flexDirection: 'row',
+    marginBottom: 20,
+  },
+  categoryCard: {
+    alignItems: 'center',
+    marginRight: 16,
+    width: 72,
+  },
+  categoryIcon: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  restaurantCard: {
+    flexDirection: 'row',
+    backgroundColor: SavorColors.card,
+    borderRadius: SavorRadius.lg,
+    padding: 14,
+    marginBottom: 12,
+    alignItems: 'center',
+    ...SavorShadow.card,
+  },
+  restThumb: {
+    width: 64,
+    height: 64,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+  },
+  restInfo: { flex: 1, gap: 4 },
+  restTags: { flexDirection: 'row', gap: 6, marginTop: 4 },
+  tag: {
+    backgroundColor: SavorColors.orangeSoft,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
   },
 });

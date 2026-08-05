@@ -1,39 +1,64 @@
-import { View, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { AuthCard } from '../components/savor/AuthCard';
-import { SavorLogo } from '../components/savor/SavorLogo';
-import { SerifText, SansText } from '../components/savor/SerifText';
-import { SegmentedTabs } from '../components/savor/SegmentedTabs';
-import { SavorInput } from '../components/savor/SavorInput';
 import { SavorButton } from '../components/savor/SavorButton';
+import { SavorInput } from '../components/savor/SavorInput';
+import { SavorLogo } from '../components/savor/SavorLogo';
+import { SegmentedTabs } from '../components/savor/SegmentedTabs';
+import { SansText, SerifText } from '../components/savor/SerifText';
 import { SocialAuth } from '../components/savor/SocialAuth';
 import { SavorColors } from '../constants/savorTheme';
 import { login } from '../services/api';
-import { showAlert } from '../services/alertHelper';
 
 export default function Login() {
   const router = useRouter();
   const [tab, setTab] = useState('email');
   const [email, setEmail] = useState('rahul@example.com');
   const [password, setPassword] = useState('password');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+
+  const validate = () => {
+    let valid = true;
+    if (!email) {
+      setEmailError('Email is required');
+      valid = false;
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      setEmailError('Please enter a valid email');
+      valid = false;
+    } else {
+      setEmailError('');
+    }
+
+    if (!password) {
+      setPasswordError('Password is required');
+      valid = false;
+    } else if (password.length < 6) {
+      setPasswordError('Password must be at least 6 characters');
+      valid = false;
+    } else {
+      setPasswordError('');
+    }
+
+    return valid;
+  };
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      showAlert('Error', 'Please enter email and password.');
-      return;
-    }
+    if (!validate()) return;
     setLoading(true);
     try {
       const data = await login(email, password);
       if (data.success) {
         router.replace('/tabs/home');
       } else {
-        showAlert('Login Failed', data.message || 'Invalid credentials.');
+        setPasswordError(data.message || 'Invalid credentials.');
       }
     } catch (err) {
-      showAlert('Login Failed', err.message || 'Something went wrong.');
+      setPasswordError(err.message || 'Something went wrong.');
     } finally {
       setLoading(false);
     }
@@ -63,16 +88,22 @@ export default function Login() {
             label="Email address"
             value={email}
             onChangeText={setEmail}
-            focused
             keyboardType="email-address"
             autoCapitalize="none"
+            error={emailError}
           />
           <SavorInput
             label="Password"
-            secureTextEntry
+            secureTextEntry={!showPassword}
             placeholder="••••••••"
             value={password}
             onChangeText={setPassword}
+            error={passwordError}
+            rightIcon={
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)} hitSlop={8}>
+                <Ionicons name={showPassword ? 'eye-outline' : 'eye-off-outline'} size={20} color={SavorColors.textMuted} />
+              </TouchableOpacity>
+            }
           />
         </>
       ) : (

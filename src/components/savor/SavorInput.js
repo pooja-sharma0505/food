@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { View, TextInput, StyleSheet } from 'react-native';
-import { SansText } from './SerifText';
+import { StyleSheet, TextInput, View } from 'react-native';
 import { SavorColors, SavorRadius } from '../../constants/savorTheme';
+import { SansText } from './SerifText';
 
-export function SavorInput({ label, style, onFocus, onBlur, ...props }) {
+export function SavorInput({ label, style, onFocus, onBlur, error, rightIcon, ...props }) {
   const [focused, setFocused] = useState(false);
 
   const handleFocus = (e) => {
@@ -23,13 +23,27 @@ export function SavorInput({ label, style, onFocus, onBlur, ...props }) {
           {label}
         </SansText>
       ) : null}
-      <TextInput
-        placeholderTextColor={SavorColors.textLight}
-        style={[styles.input, focused && styles.inputFocused, style]}
-        onFocus={handleFocus}
-        onBlur={handleBlur}
-        {...props}
-      />
+      <View style={styles.inputRow}>
+        <TextInput
+          placeholderTextColor={SavorColors.textLight}
+          style={[
+            styles.input,
+            focused && styles.inputFocused,
+            error && styles.inputError,
+            rightIcon && styles.inputWithIcon,
+            style,
+          ]}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          {...props}
+        />
+        {rightIcon ? <View style={styles.rightIcon}>{rightIcon}</View> : null}
+      </View>
+      {error ? (
+        <SansText size={12} color={SavorColors.orange} style={styles.error}>
+          {error}
+        </SansText>
+      ) : null}
     </View>
   );
 }
@@ -37,7 +51,12 @@ export function SavorInput({ label, style, onFocus, onBlur, ...props }) {
 const styles = StyleSheet.create({
   wrap: { marginBottom: 14 },
   label: { marginBottom: 6 },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   input: {
+    flex: 1,
     fontFamily: 'DMSans_400Regular',
     fontSize: 15,
     backgroundColor: SavorColors.backgroundInput,
@@ -48,8 +67,22 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     color: SavorColors.text,
   },
+  inputWithIcon: {
+    paddingRight: 46,
+  },
   inputFocused: {
     backgroundColor: SavorColors.card,
     borderColor: SavorColors.orange,
+  },
+  inputError: {
+    borderColor: SavorColors.orange,
+  },
+  rightIcon: {
+    position: 'absolute',
+    right: 12,
+  },
+  error: {
+    marginTop: 4,
+    marginLeft: 4,
   },
 });

@@ -6,11 +6,13 @@ export default function Onboarding3() {
   return (
     <OnboardingSlide
       step={2}
+      total={3}
       iconName="pricetag-outline"
       title={'Exclusive Deals\nEvery Day'}
       description="Unlock member-only discounts, cashback, and free delivery passes."
       buttonLabel="Get Started 🎉"
       onNext={() => router.push('/login')}
+      onSkip={() => router.push('/login')}
     />
   );
 }

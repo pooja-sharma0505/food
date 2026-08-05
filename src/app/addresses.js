@@ -1,15 +1,19 @@
-import { View, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useState, useEffect } from 'react';
-import { Screen } from '../components/savor/Screen';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { PageHeader } from '../components/savor/PageHeader';
-import { SansText } from '../components/savor/SerifText';
 import { SavorButton } from '../components/savor/SavorButton';
+import { Screen } from '../components/savor/Screen';
+import { SansText } from '../components/savor/SerifText';
 import { SavorColors, SavorRadius, SavorShadow } from '../constants/savorTheme';
-import { fetchAddresses } from '../services/api';
 import { showAlert } from '../services/alertHelper';
+import { fetchAddresses } from '../services/api';
 
 export default function Addresses() {
+  const router = useRouter();
+  const params = useLocalSearchParams();
+  const selectMode = params.select === 'true';
   const [addresses, setAddresses] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -38,6 +42,12 @@ export default function Addresses() {
     showAlert('Add Address', 'Add a new delivery address.', [{ text: 'OK' }]);
   };
 
+  const handleSelect = (addr) => {
+    if (selectMode) {
+      router.back({ selectedAddress: addr });
+    }
+  };
+
   if (loading) {
     return (
       <Screen scroll padBottom={false} contentStyle={styles.pad}>
@@ -52,7 +62,12 @@ export default function Addresses() {
       <PageHeader title="Saved Addresses" />
 
       {addresses.map((addr) => (
-        <View key={addr.id} style={[styles.card, addr.is_default && styles.cardDefault]}>
+        <TouchableOpacity
+          key={addr.id}
+          style={[styles.card, addr.is_default && styles.cardDefault, selectMode && styles.cardSelectable]}
+          onPress={() => handleSelect(addr)}
+          activeOpacity={0.8}
+        >
           <View style={styles.iconWrap}>
             <Ionicons name={addr.label === 'Home' ? 'home' : 'briefcase'} size={22} color={SavorColors.orange} />
           </View>
@@ -68,13 +83,22 @@ export default function Addresses() {
             <SansText size={13}>{addr.address_line1}</SansText>
             <SansText size={13}>{addr.address_line2} — {addr.postal_code}</SansText>
           </View>
-          <TouchableOpacity onPress={() => handleEdit(addr)}>
-            <SansText size={13} color={SavorColors.orange} weight="semi">Edit</SansText>
-          </TouchableOpacity>
-        </View>
+
+          {selectMode ? (
+            <View style={styles.radio}>
+              <Ionicons name="radio-button" size={20} color={SavorColors.textLight} />
+            </View>
+          ) : (
+            <TouchableOpacity onPress={() => handleEdit(addr)}>
+              <SansText size={13} color={SavorColors.orange} weight="semi">Edit</SansText>
+            </TouchableOpacity>
+          )}
+        </TouchableOpacity>
       ))}
 
-      <SavorButton label="+ Add New Address" variant="ghost" onPress={handleAddNew} style={styles.add} />
+      {!selectMode ? (
+        <SavorButton label="+ Add New Address" variant="ghost" onPress={handleAddNew} style={styles.add} />
+      ) : null}
     </Screen>
   );
 }
@@ -93,6 +117,10 @@ const styles = StyleSheet.create({
     ...SavorShadow.card,
   },
   cardDefault: { borderColor: SavorColors.orange },
+  cardSelectable: {
+    borderWidth: 2,
+    borderColor: SavorColors.orange,
+  },
   iconWrap: {
     width: 44,
     height: 44,
@@ -109,6 +137,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
+  },
+  radio: {
+    paddingLeft: 8,
   },
   add: { marginTop: 8 },
 });

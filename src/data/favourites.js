@@ -23,6 +23,7 @@ export const favourites = favouriteFoodIds
       image: food.image,
       rating: food.rating,
       restaurant_name: food.restaurant_name,
+      restaurant_id: food.restaurant_id,
       category_icon: food.category_icon,
     };
   })
